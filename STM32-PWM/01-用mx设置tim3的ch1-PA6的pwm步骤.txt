@@ -1,0 +1,86 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 用mx设置tim3的ch1-PA6的pwm步骤：  （20个地方）
+
+1. 建立工程     （4个地方）
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击start project
+
+
+2. 设置时钟为HSI的48M     （1个地方）
+
+3. 设置TIM3，如下：    （8个地方）
+    。在引脚图上，把PA6选为TIM3-CH1     ）
+    。勾选： Internal Clock
+    。channel1：  pwm Generation CH1
+
+    。Prescaler：  479                          //100khz  = 48M / 480
+    。Couter Period：  99                    //1khz    =  100k / 100    （pwm的时钟）
+    。Auto-reload preload: enable
+    。pulse:   30
+
+    。把PA6设置为 pull down
+
+补充： 考虑把PA6的标识设置为： PWM-LED
+ 
+3. 如果是TIM1 (或高级定时器)，加上下面的设置
+    。  Automatic Output state： Enable
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： d:\pwmtim3
+    。设置工程名称： pwmtim3
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files
+
+    。选择 LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+
+二.  在keil 工程中，添加代码，启动tim3的pwm
+
+     1. 在main的tim3初始化后面，添加下面两句：
+ 
+            /* USER CODE BEGIN 2 */
+  
+            LL_TIM_CC_EnableChannel(TIM3, LL_TIM_CHANNEL_CH1);
+            LL_TIM_EnableCounter(TIM3);
+  
+            /* USER CODE END 2 */
+
+
+    2. 进一步优化，可添加占空比逐渐变化的效果，在while中，添加下面的语句
+
+           while (1)	
+           {	              	
+              //uint32_t itimcount;	
+              uint32_t iarr, iduty ;	
+                 	
+              //itimcount = LL_TIM_GetCounter(TIM3);	
+              iarr = LL_TIM_GetAutoReload(TIM3);  	
+              iduty=LL_TIM_OC_GetCompareCH1(TIM3);	
+                 	
+              if(iduty&lt;iarr)	
+                 iduty++;	
+              else	
+                 iduty=0;	
+             	
+              LL_TIM_OC_SetCompareCH1(TIM3, iduty);     	
+              	
+              LL_mDelay(100);	
+           }	
+
+
+
+
+
+

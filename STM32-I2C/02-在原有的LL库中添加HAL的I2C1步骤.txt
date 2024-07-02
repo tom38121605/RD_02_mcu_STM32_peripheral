@@ -1,0 +1,83 @@
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 02-在原有的LL库中添加HAL的I2C1步骤：  （？个地方）
+
+1. 建立工程     （4个地方）                                //已在原来的LL中完成
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击start project   
+
+2. 设置时钟为HSI的48M     （1个地方）            //已在原来的LL中完成
+
+3. 设置I2C1，如下：    （？个地方）
+
+    。在引脚图上，把PF0,PF1设置为SDA,SCL
+    。I2C Speed Mode:    Fast Mode
+    。I2C Speed Frequency:  400 
+
+    。把PF0,PF1设置为 Pull-Up
+    。Max output speed:   low  (默认)
+    。Fast mode：            Disable   (默认)
+
+ 补充： 考虑把I2C的标识设置为： SDA, SCL
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。新加的I2C选择 HAL库     //修改点
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+
+
+二.  在keil 工程中，添加代码，启动tim3的pwm
+
+     1. 在main的tim3初始化后面，添加下面两句：
+ 
+          uint8_t i2c_writereg(uint16_t idevaddr, uint8_t ireg,uint8_t data);
+          uint8_t i2c_readreg(uint16_t idevaddr,uint8_t ireg);
+          uint8_t i2c_writebytes(uint16_t idevaddr, uint8_t ireg, uint8_t *sbuf,uint16_t ilen);
+          uint8_t i2c_readbytes(uint16_t idevaddr,uint8_t ireg,uint8_t *sbuf,uint16_t ilen);
+
+
+
+    2. 进一步优化，可添加占空比逐渐变化的效果，在while中，添加下面的语句
+
+           while (1)	
+           {	              	
+                //-------------test 24c02 onebyte---test-------------------
+              
+                uint8_t itemp=0;
+                uint32_t idelay=50000;
+              
+                i2c_writereg( 0xA0,0x03,6);   
+                delay_nop(idelay);        
+                itemp=i2c_readreg( 0xA0,0x03); 
+
+                iputbytes1( (uint8_t*)&amp;itemp,1);      
+              
+                i2c_writereg( 0xA0,0x03,8);
+                delay_nop(idelay);     
+                itemp=i2c_readreg( 0xA0,0x03);    
+                iputbytes1( (uint8_t*)&amp;itemp,1);  
+           
+         //-------------test 24c02 onebyte----end-----------------
+
+              	
+              LL_mDelay(100);	
+           }	
+
+
+
+
+
