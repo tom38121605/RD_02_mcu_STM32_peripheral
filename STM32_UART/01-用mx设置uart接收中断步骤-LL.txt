@@ -1,0 +1,159 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 在 LL库中添加half uart步骤：   
+
+1. 建立工程     （4个地方）                            
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击start project
+   
+
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置half uart，如下：    （?个地方）
+
+    。在引脚图上，把PA9设置为TX
+    。mode： single Wire （Half-Duplex）
+    。Baud Rate： 1M
+
+    。GPIO mode：           altemate Function open drain  (默认)
+    。把PA9设置为 Pull-Up
+    。Max output speed:  high
+    。Fast mode：           Enable   
+    。user lable：            UART_DATA1
+    
+    。USART1 interrupt：  勾选    （在NVIC setttings 中，设置uart中断）   //新加 ， uart接收中断用  
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。新加的UART1选择LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中， 添加代码，
+
+void MX_USART1_UART_Init(void)
+{
+   。。。。。。
+
+  /* USER CODE BEGIN USART1_Init 2 */
+
+   //LL_USART_ClearFlag_ORE(USART1);
+   //LL_USART_ClearFlag_NE(USART1);
+   //LL_USART_ClearFlag_PE(USART1);
+   //LL_USART_ClearFlag_FE(USART1);
+
+   LL_USART_EnableIT_RXNE(USART1);
+   //LL_USART_EnableIT_ERROR(USART1); 
+  
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+void USART1_IRQHandler(void)
+{
+              /* USER CODE BEGIN USART1_IRQn 0 */
+               
+               static uint8_t flg_rxstart1 =0;
+               static uint8_t flg_rxstart2 =0; 
+               static uint8_t flg_rxstart3 =0; 
+               static uint8_t ilen =0; 
+               
+               uint8_t cuartbyte=0;
+               
+               if (LL_USART_IsActiveFlag_RXNE(USART1) && LL_USART_IsEnabledIT_RXNE(USART1)) 
+               {   
+                  //USART1->ISR &= ~(USART_ISR_RXNE_RXFNE);  //auto cleared by readed
+                  
+                  cuartbyte = (uint8_t)(READ_BIT(USART1->RDR, USART_RDR_RDR) & 0xFFU); 
+
+                  if( (flg_rxstart1==0) && ( cuartbyte !=CMDHEADER2) )   
+                     return;      
+                     
+                  if( (flg_rxstart1==0) && ( cuartbyte ==CMDHEADER2) )   
+                  {     
+                     flg_rxstart1=1; 
+                     irxdata[irxcount++]=cuartbyte;
+                     return;
+                  }     
+
+                  if( (flg_rxstart2==0) && (flg_rxstart1==1) && ( cuartbyte !=CMDHEADER1) )  
+                  {         
+                     flg_rxstart1=0;
+                     irxcount=0;
+                     return;
+                  }			
+                  if( (flg_rxstart2==0) && (flg_rxstart1==1) && ( cuartbyte ==CMDHEADER1) )   
+                  {         
+                     flg_rxstart2=1;   
+                     irxdata[irxcount++]=cuartbyte;
+                     return;
+                  }
+                  
+                  if( (flg_rxstart2==1) && (flg_rxstart3==0) )  
+                  {   
+                     ilen=cuartbyte; 
+                     irxdata[irxcount++]=cuartbyte;
+                     flg_rxstart3=1;
+                    
+                     return;
+                  }        
+                  
+                  if( flg_rxstart3==1)   
+                  {        
+                     irxdata[irxcount++]=cuartbyte;
+
+                     if(irxcount>=(ilen+3))
+                     {
+                        memcpy((void *)irxdata2,(void *)irxdata,irxcount);
+                        irxcount2=irxcount;
+                        flg_rx1=1;
+
+                        irxcount=0;
+                        ilen=0;
+                        flg_rxstart1=0;
+                        flg_rxstart2=0;		
+                        flg_rxstart3=0;		            
+                     }                 
+                  }
+               } 
+               else
+               {
+                  
+                  //__IO uint32_t iregval;
+                  //iregval = LL_USART_ReadReg(USART1, ISR);
+
+                  //if (iregval & LL_USART_ISR_NE)  //2
+                  //   LL_USART_ClearFlag_NE(USART1);
+                  //else if (iregval & LL_USART_ISR_PE)  //0
+                  //   LL_USART_ClearFlag_PE(USART1);
+                  //else if (iregval & LL_USART_ISR_ORE)  //3
+                  //   LL_USART_ClearFlag_ORE(USART1);
+                  //else if (iregval & LL_USART_ISR_FE)  //1
+                  //   LL_USART_ClearFlag_FE(USART1);
+
+                  //LL_USART_ClearFlag_RTO(USART1);  //11
+                  //LL_USART_ClearFlag_UDR(USART1);;  //13
+                  
+               }   
+
+              /* USER CODE END USART1_IRQn 0 */
+              /* USER CODE BEGIN USART1_IRQn 1 */
+
+              /* USER CODE END USART1_IRQn 1 */
+}
+
+
+

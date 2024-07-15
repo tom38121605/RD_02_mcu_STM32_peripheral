@@ -1,0 +1,84 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 在 LL库中添加exint步骤：   
+
+1. 建立工程     （4个地方）                            
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击start project
+   
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置EXINT，如下：    
+
+    。在引脚图上，把PB4设置为GPIO_EXTI4
+
+    。GPIO mode：  External interrupt mode with Falling ...
+    。把PB4设置为 Pull-Up
+    
+    。NVIC：  勾选  EXTI line 4 to 15 interrupts
+
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。GPIO选择LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中， 添加代码      （4个地方）
+
+
+   1. 在stm32f0xx_it.c中， 添加下面两处
+
+       volatile uint16_t flg_exint1 = 0;                    //add -- 1
+
+      void EXTI4_15_IRQHandler(void)
+      {
+        /* USER CODE BEGIN EXTI4_15_IRQn 0 */
+
+        /* USER CODE END EXTI4_15_IRQn 0 */
+        if (LL_EXTI_IsActiveFlag_0_31(LL_EXTI_LINE_4) != RESET)
+        {
+          LL_EXTI_ClearFlag_0_31(LL_EXTI_LINE_4);
+          /* USER CODE BEGIN LL_EXTI_LINE_4 */
+
+           flg_exint1=1;                                               //add -- 2
+           
+          /* USER CODE END LL_EXTI_LINE_4 */
+        }
+        /* USER CODE BEGIN EXTI4_15_IRQn 1 */
+
+        /* USER CODE END EXTI4_15_IRQn 1 */
+      }
+
+2. 在main.h中，添加
+
+   extern volatile uint16_t flg_exint1;        //add -- 3
+
+3.  在main.c 的while中添加
+
+      //exint
+      if(flg_exint1==1)                           //add -- 4
+      {
+         flg_exint1=0;
+         
+         uartsendstrx(USART1,(uint8_t*)"exint1\r\n");
+         
+      }
+
+
+
+
+
