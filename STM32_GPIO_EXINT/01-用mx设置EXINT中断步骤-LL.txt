@@ -15,6 +15,7 @@ MCU: F030CCT6   (其他mcu可通用)
 3. 设置EXINT，如下：    
 
     。在引脚图上，把PB4设置为GPIO_EXTI4
+    。label：  CHARGE_INT1
 
     。GPIO mode：  External interrupt mode with Falling ...
     。把PB4设置为 Pull-Up
