@@ -1,0 +1,59 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 在 LL库中添加gpio output步骤：    （led toggle）
+
+1. 建立工程     （4-5个地方）                            
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击start project
+   。如果提示下载sdk库，则需要输入www.st.com的用户和密码
+        zhao.chunrong@global-silicon.com   （999999 8888 ~C  ）
+
+   
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置GPIO OUTPUT，如下：    
+
+    。在引脚图上，把PC13设置为GPIO_OUTPUT
+    。label：  LED1 
+    。把PC13设置为 NO Pull 
+    。speed： slow
+    
+    。NVIC：  无
+
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： c:\ledtoggle
+    。设置工程名称： ledtoggle
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。GPIO选择LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中， 添加代码      （1个地方） 
+  
+ .  在main.c 的while中添加
+
+   while(1)
+         
+       LL_GPIO_TogglePin( LED1_GPIO_Port, LED1_Pin);
+
+       LL_mDelay(1000);	
+         
+
+ 
+
+
+
+
+
