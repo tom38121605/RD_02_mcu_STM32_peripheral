@@ -1,0 +1,14 @@
+
+1. 下载数据手册
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击右边的"datasheet"
+
+2. 下载参考手册
+
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击中间的"docs & resource"
+   。一直往下拉，找到“Reference Manuals"

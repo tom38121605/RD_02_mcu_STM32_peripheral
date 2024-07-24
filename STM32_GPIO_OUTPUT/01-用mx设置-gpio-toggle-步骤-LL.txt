@@ -1,0 +1,69 @@
+
+MCU: STM32C011   (其他mcu可通用)
+
+预操作： 先建立一个目录： d:\test\c011base
+
+一. 在 LL库中添加gpio output步骤：    （c011base）
+
+1. 建立工程                               
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32C011F6U6
+   。点击start project
+   。如果提示下载sdk库，则需要输入www.st.com的用户和密码
+        zhao.chunrong@global-silicon.com   （999999 8888 ~C  ）
+
+   
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置GPIO OUTPUT，如下：    
+
+    。在引脚图上，把PC13设置为GPIO_OUTPUT
+    。label：  LED
+    。mode： push 
+    。把PC13设置为 NO Pull 
+    。max speed： slow
+    。fast mode： disable   
+ 
+    。中断设置NVIC：  无
+
+
+5. 设置project，如下：  （6个地方）
+
+    。保存.ico文件： 菜单file\save project, 保存到  d:\test\c011base
+    。设置工程目录： d:\test\c011base  （如果保存了.ico文件，这个目录会自动出现）
+    。设置工程名称： c011base   （如果保存了.ico文件，这个名称会自动出现）
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。GPIO选择LL库
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中，修改工程设置
+
+  . 打开keil，修改相应的工程设置，如 勾选 reset and run
+  . 打开keil的工程设置，勾选microlib
+  . 打开keil的工程设置，编译优化选择Os
+
+
+三.  在keil 工程中， 添加代码      （1个地方） 
+  
+  . 在main.c 的while中添加
+
+    while(1)
+         
+        LL_GPIO_TogglePin( LED_GPIO_Port, LED_Pin);
+
+        LL_mDelay(1000);	
+         
+
+ 
+
+
+
+
+

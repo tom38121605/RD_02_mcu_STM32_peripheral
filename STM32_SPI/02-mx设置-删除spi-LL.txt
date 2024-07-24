@@ -1,0 +1,137 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 在 LL库中删除spi步骤：   
+
+1. 删除spi                               
+   。双击打开mx
+   。在connectivity中，选择SPI1，把mode设置为： Disable
+   。在引脚图中， 把PA5,PA6,PA7, 去掉SPI1_SCK,SPI_MISO,SPI_MOSI的选项，都设置为Reset_state
+   。在引脚图中， 把PA2,PA3,PA4, 去掉SPI1_CS2,SPI_CS0,SPICS1的选项，都设置为Reset_state
+   。保存ico文件，点击start project
+   
+ 
+//二.  在keil 工程中， 删除相关的adc文件 
+
+   1. MX操作时自动删除
+
+      。spi.h
+      。spi.c
+      。stm32c0xx_ll_spi.h
+      。stm32c0xx_ll_spi.c
+
+   2. 手动删除
+      。app_icm42605.h
+      。app_icm42605.c
+      。app_mmc5983ma.h
+      。app_mmc5983ma.c
+
+
+       --------------里面有诸如下面的变量声明和函数定义----------------------
+
+      #define ICM42605_DEVICE_CONFIG_REG           0x11    
+      
+#define ICM42605_INT_CONFIG_REG                0x14 
+
+      uint8_t icm0_read_byte(uint8_t addr);			
+      void icm0_write_byte(uint8_t addr,  uint8_t value);			
+      void icm0_read_bytes(uint8_t addr ,uint8_t length ,uint8_t *buffer);			
+      void icm0_readfromspi( uint8_t iaddr, uint8_t ilen, uint8_t *idata);			
+      void icm0_init(void);    			
+      void icm0_read_data(uint8_t *sdata, uint8_t ilen); 	
+
+
+
+ 三.  在keil 工程中， 删除代码，       //通过以前项目的svn比较
+
+1. 文件  main.h, 删除函数声明
+
+    #define MMC_SPI SPI1
+
+    uint8_t SPI_transfer(uint8_t data);
+    void readsensor(void);
+ 
+
+2.  文件  main.c， 删除函数体
+
+   void readsensor(void);
+       ......
+
+   uint8_t SPI_transfer(uint8_t data);
+       ......
+
+
+
+ 3.  文件  main.c， 删除常数定义和include
+
+     #include "spi.h"
+     #include "app_mmc5983ma.h"
+     #include "app_icm42605.h"
+ 
+     #define DATA_MMC0_POINT  5
+
+     #define DATA_MMC1_POINT  12
+
+     #define DATA_ICM0_POINT  19
+
+     #define DATA_TIME_POINT  31
+
+
+ 4.  文件  main.c， 删除代码调用运行
+
+
+dowithuart()
+
+      case 0xA1:
+       
+         slavecmd[0]=CMDHEADER1;    //0xAA;
+         slavecmd[1]=CMDHEADER2;    //0x55;
+         slavecmd[2]=0x1F;         
+         slavecmd[3]=0xB1;          
+         slavecmd[4]=LOCALSLAVEADDR;          
+      
+         itimnum = LL_TIM_GetCounter(TIM17);
+         slavecmd[ DATA_TIME_POINT] = (uint8_t)(itimnum &amp; 0xff);
+         slavecmd[ DATA_TIME_POINT+1] = (uint8_t)( (itimnum&gt;&gt;8) &amp; 0xff );   
+   
+         slavecmd[33]=get_checksum_8(slavecmd,33);
+         uartsendcmd(slavecmd,34);  
+
+
+
+main()
+
+   //--LL_SPI_Enable(SPI1);     
+
+   //sensor init 
+   mmc0_init();
+   mmc1_init();
+   icm0_init();
+
+   while(1)
+
+      //read sensor data test	
+      if(isensorcount&gt;=100)   //1* 1ms =1ms	
+      {	
+         isensorcount=0;  	
+         readsensor(); 	
+            
+         slavecmd[0]=CMDHEADER1;    //0xAA;	
+         slavecmd[1]=CMDHEADER2;    //0x55;	
+         slavecmd[2]=0x1F;         	
+         slavecmd[3]=0xB1;          	
+         slavecmd[4]=LOCALSLAVEADDR;          	
+
+         slavecmd[33]=get_checksum_8(slavecmd,33);	
+         uartsendcmd(slavecmd,34);          	
+      }	
+
+      if(iresetcount&gt;>=1000)
+      {
+         iresetcount=0;
+         
+         //do control0 reset
+         mmc0_write_byte(MMC5983_CONTROL0_REG, MMC5983_CONTROL0_RESET );   
+         mmc1_write_byte(MMC5983_CONTROL0_REG, MMC5983_CONTROL0_RESET );
+      }  

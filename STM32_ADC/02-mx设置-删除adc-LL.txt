@@ -1,0 +1,56 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+
+一. 在 LL库中删除spi步骤：   
+
+1. 删除spi                               
+   。双击打开mx
+   。在Analog中，点击ADC1, 去掉勾选IN0
+   。在引脚图中， 把PA0去掉ADC1_IN0的选项，设置为Reset_state
+   。保存ico文件，点击start project
+   
+ 
+二.  在keil 工程中， 删除相关的adc文件 , MX操作时自动删除
+      。adc.h
+      。adc.c
+      。stm32c0xx_ll_adc.h
+      。stm32c0xx_ll_adc.c
+
+
+三.  在keil 工程中， 删除代码      //通过以前项目的svn比较
+
+1. 文件  main.h, 删除函数声明
+
+    void ADC_Activate(void);
+    void ConversionStartPoll_ADC_GrpRegular(void);
+    uint16_t readbuttonadc(void);
+
+2.  文件  main.c， 删除函数体
+
+    uint16_t readbuttonadc(void)
+       ......
+
+   void ConversionStartPoll_ADC_GrpRegular(void)
+       ......
+
+   void ADC_Activate(void)
+       ......
+ 
+
+ 3.  文件  main.c， 删除常数定义
+
+      #define ADC_CALIBRATION_TIMEOUT_MS             (   1UL)
+      #define ADC_ENABLE_TIMEOUT_MS                      (   1UL)
+      #define ADC_DISABLE_TIMEOUT_MS                     (   1UL)
+      #define ADC_STOP_CONVERSION_TIMEOUT_MS    (   1UL)
+      #define ADC_CONVERSION_TIMEOUT_MS             (4000UL)
+
+      #define ADC_DELAY_CALIB_ENABLE_CPU_CYCLES    (LL_ADC_DELAY_CALIB_ENABLE_ADC_CYCLES * 32)
+      #define VDDA_APPLI                                             (3300UL)
+      #define VAR_CONVERTED_DATA_INIT_VALUE           (__LL_ADC_DIGITAL_SCALE(LL_ADC_RESOLUTION_12B) + 1)   
+           
+      __IO uint16_t uhADCxConvertedData = VAR_CONVERTED_DATA_INIT_VALUE;    
+      uint16_t uhADCxConvertedData_Voltage_mVolt = 0;                                        
+
+
