@@ -1,9 +1,12 @@
 
-low£º          
-medium: 
-high:          
-very high:  
+STM32F4: 
+
+low£º              2MHZ
+medium:         25MHZ
+high:              50MHZ 
+very high:       100MHZ
 
 
 
 
+ 

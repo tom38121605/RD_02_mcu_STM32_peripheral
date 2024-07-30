@@ -49,23 +49,10 @@ MCU: F030CCT6   (其他mcu可通用)
 
     。---main.h 中---
 
-         #define switch2read(x)  x->CR1 &=~(1<<3);  x->CR1 |=  (1<<2);   //TE=0, RE=1
-         #define switch2send(x)  x->CR1 &=~(1<<2);  x->CR1 |=  (1<<3);   //TE=1, RE=0
-
-         #define WAIT2TE_MASTER 300  
-         #define WAIT2RE0_MASTER 320
-         #define WAIT2RE_MASTER 320   
-          
-         #define WAIT2TE_SLAVE   10
-         #define WAIT2RE_SLAVE   320 
-
          void delay_nop(uint32_t nCount);
          void Send_Data_To_UART1 (uint8_t c);
          void iputs1(char *msg);
          void iputbytes1(uint8_t *msg, uint32_t ilen);
-            
-         void uartsendcmd(uint8_t *scmd, uint32_t ilen);   
-         void uartsendstr(uint8_t *str1);
 
 
     。---main.c 中---
@@ -96,32 +83,7 @@ MCU: F030CCT6   (其他mcu可通用)
             Send_Data_To_UART1(*msg++);
          }
 
-         void uartsendcmd(uint8_t *scmd, uint32_t ilen)
-         {
-            //switch to tx 
-            delay_nop(WAIT2TE_SLAVE); //delay_nop(WAIT2TE_MASTER);  
-            switch2send(USART1); 
-
-            //iputbytes1((uint8_t *)scmd,ilen);     
-            iputbytes1(scmd,ilen);     
-
-            //switch to rx
-            delay_nop(WAIT2RE_SLAVE);  //delay_nop(WAIT2RE0_MASTER);    
-            switch2read(USART1);   
-         }   
-
-         void uartsendstr(uint8_t *str1)
-         {
-            //switch to tx 
-            delay_nop(WAIT2TE_SLAVE); //delay_nop(WAIT2TE_MASTER);  
-            switch2send(USART1); 
-
-            iputs1((char*)str1);   
-
-            //switch to rx
-            delay_nop(WAIT2RE_SLAVE);  //delay_nop(WAIT2RE0_MASTER);    
-            switch2read(USART1);   
-         }   
+  
 
 
     。---main.c 中---
@@ -129,7 +91,7 @@ MCU: F030CCT6   (其他mcu可通用)
           while 
                   LL_mDelay(1000); 
              
-     uartsendstr( (uint8_t*)"run");
+      iputs1( "run");
 
 
 

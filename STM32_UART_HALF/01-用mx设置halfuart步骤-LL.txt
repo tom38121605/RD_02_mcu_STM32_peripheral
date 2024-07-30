@@ -47,42 +47,93 @@ MCU: F030CCT6   (其他mcu可通用)
 
 
 
-//二.  在keil 工程中，添加代码，启动tim3的pwm
+二.  在keil 工程中，添加代码，启动tim3的pwm
 
-     //1. 在main的tim3初始化后面，添加下面两句：
- 
-          uint8_t i2c_writereg(uint16_t idevaddr, uint8_t ireg,uint8_t data);
-          uint8_t i2c_readreg(uint16_t idevaddr,uint8_t ireg);
-          uint8_t i2c_writebytes(uint16_t idevaddr, uint8_t ireg, uint8_t *sbuf,uint16_t ilen);
-          uint8_t i2c_readbytes(uint16_t idevaddr,uint8_t ireg,uint8_t *sbuf,uint16_t ilen);
+    。---main.h 中---
+
+         #define switch2read(x)  x->CR1 &=~(1<<3);  x->CR1 |=  (1<<2);   //TE=0, RE=1
+         #define switch2send(x)  x->CR1 &=~(1<<2);  x->CR1 |=  (1<<3);   //TE=1, RE=0
+
+         #define WAIT2TE_MASTER 300  
+         #define WAIT2RE0_MASTER 320
+         #define WAIT2RE_MASTER 320   
+          
+         #define WAIT2TE_SLAVE   10
+         #define WAIT2RE_SLAVE   320 
+
+         void delay_nop(uint32_t nCount);
+         void Send_Data_To_UART1 (uint8_t c);
+         void iputs1(char *msg);
+         void iputbytes1(uint8_t *msg, uint32_t ilen);
+            
+         void uartsendcmd(uint8_t *scmd, uint32_t ilen);   
+         void uartsendstr(uint8_t *str1);
 
 
+    。---main.c 中---
 
-   // 2. 进一步优化，可添加占空比逐渐变化的效果，在while中，添加下面的语句
+         void delay_nop(uint32_t nCount) 
+         { 
+            for(; nCount != 0; nCount--)  
+            { 
+               __NOP(); 
+            } 
+         }
 
-           while (1)	
-           {	              	
-                //-------------test 24c02 onebyte---test-------------------
-              
-                uint8_t itemp=0;
-                uint32_t idelay=50000;
-              
-                i2c_writereg( 0xA0,0x03,6);   
-                delay_nop(idelay);        
-                itemp=i2c_readreg( 0xA0,0x03); 
+         void Send_Data_To_UART1 (uint8_t c)
+         {
+            USART1->TDR = c;
+            while( (USART1-> ISR & (1<<7) ) ==0 );  //USART_ISR_TC  //USART_ISR_TXE_TXFNF
+         }
 
-                iputbytes1( (uint8_t*)&amp;itemp,1);      
-              
-                i2c_writereg( 0xA0,0x03,8);
-                delay_nop(idelay);     
-                itemp=i2c_readreg( 0xA0,0x03);    
-                iputbytes1( (uint8_t*)&amp;itemp,1);  
-           
-         //-------------test 24c02 onebyte----end-----------------
+         void iputs1(char *msg)
+         {
+            while(*msg)
+            Send_Data_To_UART1(*msg++);   
+         }
 
-              	
-              LL_mDelay(100);	
-           }	
+         void iputbytes1(uint8_t *msg, uint32_t ilen)
+         {
+            while(ilen--)
+            Send_Data_To_UART1(*msg++);
+         }
+
+         void uartsendcmd(uint8_t *scmd, uint32_t ilen)
+         {
+            //switch to tx 
+            delay_nop(WAIT2TE_SLAVE); //delay_nop(WAIT2TE_MASTER);  
+            switch2send(USART1); 
+
+            //iputbytes1((uint8_t *)scmd,ilen);     
+            iputbytes1(scmd,ilen);     
+
+            //switch to rx
+            delay_nop(WAIT2RE_SLAVE);  //delay_nop(WAIT2RE0_MASTER);    
+            switch2read(USART1);   
+         }   
+
+         void uartsendstr(uint8_t *str1)
+         {
+            //switch to tx 
+            delay_nop(WAIT2TE_SLAVE); //delay_nop(WAIT2TE_MASTER);  
+            switch2send(USART1); 
+
+            iputs1((char*)str1);   
+
+            //switch to rx
+            delay_nop(WAIT2RE_SLAVE);  //delay_nop(WAIT2RE0_MASTER);    
+            switch2read(USART1);   
+         }   
+
+
+    。---main.c 中---
+
+          while 
+                  LL_mDelay(1000); 
+             
+     uartsendstr( (uint8_t *)"run");
+
+
 
 
 
