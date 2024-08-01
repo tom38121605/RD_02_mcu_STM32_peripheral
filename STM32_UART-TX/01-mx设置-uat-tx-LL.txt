@@ -22,10 +22,10 @@ MCU: F030CCT6   (其他mcu可通用)
     。mode： Asynchronous
     。Baud Rate： 1M
 
-    。GPIO mode：           altemate Function open drain  (默认)
+    。GPIO mode：           altemate Function push pull  (默认)
     。把PA9设置为 Pull-Up
     。Max output speed:  high
-    。Fast mode：           Enable   
+    。Fast mode：           disable       (好像都可以)     
     。user lable：            UART_TX
     
     。USART1 interrupt：  不勾选    
