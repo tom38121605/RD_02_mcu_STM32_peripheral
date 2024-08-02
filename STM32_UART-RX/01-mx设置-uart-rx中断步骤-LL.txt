@@ -76,6 +76,8 @@ MCU: F030CCT6   (其他mcu可通用)
          #define TXDATALEN  34   
          #define RXDATALEN  (PACKAGELEN+6) 
 
+        uint8_t get_checksum_8(uint8_t *ival, uint32_t inum);
+
          extern volatile uint8_t flg_rx;
          extern volatile uint8_t irxdata[RXDATALEN+2];
          extern volatile uint8_t irxdata2[RXDATALEN+2];
@@ -85,15 +87,17 @@ MCU: F030CCT6   (其他mcu可通用)
 
   3. 在stm32c0xx_it.c中 添加
 
-         volatile uint8_t flg_rx=0;
-         volatile uint8_t irxdata[RXDATALEN+2]={0};
-         volatile uint8_t irxdata2[RXDATALEN+2]={0};
-         volatile uint32_t irxcount = 0;
-         volatile uint32_t irxcount2 = 0;
+       #include "string.h"      // memcpy
+
+       volatile uint8_t flg_rx=0;
+       volatile uint8_t irxdata[RXDATALEN+2]={0};
+       volatile uint8_t irxdata2[RXDATALEN+2]={0};
+       volatile uint32_t irxcount = 0;
+       volatile uint32_t irxcount2 = 0;
 
 
-         void USART1_IRQHandler(void)
-         {
+       void USART1_IRQHandler(void)
+       {
             /* USER CODE BEGIN USART1_IRQn 0 */
 
             static uint8_t flg_rxstart1 =0;
@@ -183,7 +187,7 @@ MCU: F030CCT6   (其他mcu可通用)
             /* USER CODE BEGIN USART1_IRQn 1 */
 
             /* USER CODE END USART1_IRQn 1 */
-         }
+       }
 
 4. 在main.c中添加
 
