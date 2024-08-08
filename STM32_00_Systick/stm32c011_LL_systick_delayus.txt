@@ -2,52 +2,42 @@
 
 
 
-//nus 为要延时的 us 数.                       
-void delay_us(u32 nus)
-{     
-   u32 temp;     
 
-    fac_us = 48M/1M;
-   
-   SysTick->LOAD=nus*fac_us; //时间加载       
-   SysTick->VAL=0x00;         //清空计数器
-   SysTick->CTRL=0x01 ;       //开始倒数   
-   
-   do
-   {
-      temp=SysTick->CTRL;
-   }
-   while((temp&0x01)&&!(temp&(1<<16)));//等待时间到达
-   
-   SysTick->CTRL=0x00;        //关闭计数器
-   SysTick->VAL =0X00;        //清空计数器   
-}
-
-
-
-//延时 nms
 //注意 nms 的范围
-//SysTick->LOAD 为 24 位寄存器,所以,最大延时为:
-//nms<=0xffffff*8*1000/SYSCLK
-//SYSCLK 单位为 Hz,nms 单位为 ms
-//对 72M 条件下,nms<=1864 
-void delay_ms(u16 nms)
-{           
-   u32 temp;   
-   SysTick->LOAD=(u32)nms*fac_ms;//时间加载(SysTick->LOAD 为 24bit)
-   SysTick->VAL =0x00;            //清空计数器
-   SysTick->CTRL=0x01 ;           //开始倒数
+//nms<=0xffff*8*1000/SYSCLK
+void LL_mDelay(uint32_t Delay)
+{
+   uint32_t temp;   
+   SysTick->LOAD=(uint32_t)Delay*(SystemCoreClock/1000/8); 
+   SysTick->VAL =0x00;            
+   SysTick->CTRL=0x01 ;          
    
    do
    {
       temp=SysTick->CTRL;
    }
-   while((temp&0x01)&&!(temp&(1<<16)));//等待时间到达
+   while((temp&0x01)&&!(temp&(1<<16))); 
    
-   SysTick->CTRL=0x00;        //关闭计数器
-   SysTick->VAL =0X00;        //清空计数器       
+   SysTick->CTRL=0x00;         
+   SysTick->VAL =0X00;           
 }
 
+void LL_uDelay(uint32_t Delay)
+{
+   uint32_t temp;   
+   SysTick->LOAD=(uint32_t)Delay*(SystemCoreClock/1000000/8); 
+   SysTick->VAL =0x00;            
+   SysTick->CTRL=0x01 ;          
+   
+   do
+   {
+      temp=SysTick->CTRL;
+   }
+   while((temp&0x01)&&!(temp&(1<<16))); 
+   
+   SysTick->CTRL=0x00;         
+   SysTick->VAL =0X00;           
+}
 
 
 =======================systick 延时1ms===推导过程=======================
