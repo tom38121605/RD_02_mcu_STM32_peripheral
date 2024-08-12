@@ -1,5 +1,9 @@
 
---------------------------------------------------设置优先级分组------------------------------------------------------------
+#define NVIC_PriorityGroup_0     0x700 
+#define NVIC_PriorityGroup_1     0x600 
+#define NVIC_PriorityGroup_2     0x500 
+#define NVIC_PriorityGroup_3     0x400 
+#define NVIC_PriorityGroup_4     0x300 
 
 #define  SCB_AIRCR_VECTKEY_Pos                16
 #define SCB_AIRCR_VECTKEY_Msk                ffff << 16
@@ -7,18 +11,21 @@
 #define SCB_AIRCR_PRIGROUP_Pos              8
 #define SCB_AIRCR_PRIGROUP_Msk             (7<<8)      //#include "core_cm3.h"
 
+#define   __NVIC_PRIO_BITS                        4   //有的型号是2
 
-------------------
+
+--------------------------------------------------设置优先级分组------------------------------------------------------------
 
 
 HAL_NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
  
      NVIC_SetPriorityGrouping(PriorityGroup);
  
-
+-------
 
 //bit31-16=5FA, 写入解锁码 （后面的分组设置才能有效写入）， bit10-8=PriorityGroup，设置优先级分组
-__STATIC_INLINE void __NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
+//参数： NVIC_PriorityGroup2 （0x05 ）
+__STATIC_INLINE void __NVIC_SetPriorityGrouping( PriorityGroup)
  
     uint32_t reg_value;
     uint32_t PriorityGroupTmp = (PriorityGroup & 0x07 );        //bit2-0    
@@ -35,38 +42,45 @@ __STATIC_INLINE void __NVIC_SetPriorityGrouping(uint32_t PriorityGroup)
  
 
 
-
 --------------------------------------------------设置抢占优先级，和子级响应优先级------------------------------------------------------------
 
-
+//参数：EXTI0, 1 , 0
 HAL_NVIC_SetPriority(IRQn_Type IRQn,   PreemptPriority,  SubPriority)
  
-    prioritygroup = NVIC_GetPriorityGrouping();
+    //prioritygroup = NVIC_GetPriorityGrouping();   //=0x05
+    //     prioritygroup =(SCB->AIRCR & SCB_AIRCR_PRIGROUP_Msk) >> SCB_AIRCR_PRIGROUP_Pos ;
+            prioritygroup =(SCB->AIRCR & （7<<8） ) >> 8;
 
-    NVIC_SetPriority(IRQn, NVIC_EncodePriority(prioritygroup, PreemptPriority, SubPriority));
+    itemp = NVIC_EncodePriority(prioritygroup, PreemptPriority, SubPriority);
+
+    NVIC_SetPriority(IRQn, itemp );
  
 
 --------
 
+//参数： 5， 1， 0
 uint32_t NVIC_EncodePriority (  PriorityGroup, PreemptPriority,   SubPriority)
  
-  uint32_t PriorityGroupTmp =  PriorityGroup &  0x07 ;    
-  uint32_t PreemptPriorityBits;
-  uint32_t SubPriorityBits;
+    uint32_t PriorityGroupTmp =  PriorityGroup &  0x07 ;    
+    uint32_t PreemptPriorityBits;
+    uint32_t SubPriorityBits;
 
-  PreemptPriorityBits = ((7 - PriorityGroupTmp) >  (__NVIC_PRIO_BITS)) ?  (__NVIC_PRIO_BITS) :  (7   - PriorityGroupTmp);
+    //PreemptPriorityBits = ( (7 - PriorityGroupTmp) >  __NVIC_PRIO_BITS ) ?  __NVIC_PRIO_BITS :  (7   - PriorityGroupTmp);
+         PreemptPriorityBits =   (7   - PriorityGroupTmp) = 7 - 5 = 2;
 
-  SubPriorityBits     = ((PriorityGroupTmp +  (__NVIC_PRIO_BITS)) < 7 ) ?  0  : ((PriorityGroupTmp - 7 ) + (__NVIC_PRIO_BITS));
-
-  return 
-           ((PreemptPriority & ((1  << (PreemptPriorityBits)) - 1 )) << SubPriorityBits) |
-           ((SubPriority     & ((1  << (SubPriorityBits    )) - 1 ))) ;
- 
+    //SubPriorityBits     = ( (PriorityGroupTmp +  __NVIC_PRIO_BITS ) < 7 ) ?  0  : ( (PriorityGroupTmp - 7 ) + __NVIC_PRIO_BITS) ;
+          SubPriorityBits     =    (PriorityGroupTmp - 7 ) + __NVIC_PRIO_BITS = （5-7 ） + 4 =2 ;
 
 
+     //iPriorsub  =   SubPriority  & ( (1  << SubPriorityBits ) - 1 )；
+          iPriorsub  =   0  & ( (1  << 2 ) - 1 )；
+
+     //iPrior =   ( PreemptPriority & ( (1  << PreemptPriorityBits) - 1 ) )  << SubPriorityBits；
+          iPrior =   ( 1 & ( (1  << 2) - 1 )  )  << 2；
+
+   return  iPrior  | iPriorsub；
 
 --------------
-
 
 
  __NVIC_SetPriority(IRQn_Type IRQn,  priority)
