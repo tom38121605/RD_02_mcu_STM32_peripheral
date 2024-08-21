@@ -1,0 +1,27 @@
+
+__STATIC_INLINE void LL_USART_TransmitData8(USART_TypeDef *USARTx, uint8_t Value)
+{
+  USARTx->TDR = Value;
+}
+
+ 
+ void BufferTransfer(void)
+{
+
+  while (ubSend < sizeof(aStringToSend))
+  {
+    while (!LL_USART_IsActiveFlag_TXE(USART1));
+
+    if (ubSend == (sizeof(aStringToSend) - 1))  //发送最后一个字节前，清TC到0
+    {
+      LL_USART_ClearFlag_TC(USART1);
+    }
+
+    LL_USART_TransmitData8(USART1, aStringToSend[ubSend++]);
+  }
+
+  while (!LL_USART_IsActiveFlag_TC(USART1));    //等待TC=1
+
+}
+
+
