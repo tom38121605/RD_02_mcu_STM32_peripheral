@@ -1,0 +1,146 @@
+
+
+MCU: F030CCT6   (其他mcu可通用)
+ 
+
+1. 在main.c， 修改下面两个数组irxdata和irxdata2
+
+    volatile uint8_t irxdata[2][RXDATALEN+2]={0};
+
+    //volatile uint8_t irxdata2[RXDATALEN+2]={0};
+
+
+2. 在main.c中添加下面的变量
+
+    volatile uint8_t icurrentindex;
+    uint8_t iuserindex=0;
+
+
+3. 在main.c中，修改uart1_rx_callback所有带 icurrentindex的地方，注释memcpy （共5个修改点 和1个注释）
+
+      void uart1_rx_callback(void) 
+      {
+            static uint8_t flg_rxstart1 =0;
+            static uint8_t flg_rxstart2 =0; 
+            static uint8_t flg_rxstart3 =0; 
+            static uint8_t ilen =0; 
+
+            uint8_t cuartbyte=0;
+
+            if (LL_USART_IsActiveFlag_RXNE(USART1) && LL_USART_IsEnabledIT_RXNE(USART1)) 
+            {   
+               //USART1->ISR &= ~(USART_ISR_RXNE_RXFNE);  //auto cleared by readed
+               
+               cuartbyte = (uint8_t)(READ_BIT(USART1->RDR, USART_RDR_RDR) & 0xFFU); 
+
+               if( (flg_rxstart1==0) && ( cuartbyte !=CMDHEADER2) )   
+                  return;      
+                  
+               if( (flg_rxstart1==0) && ( cuartbyte ==CMDHEADER2) )   
+               {     
+                  flg_rxstart1=1; 
+                  irxdata[icurrentindex][irxcount++]=cuartbyte;    //--修改点
+                  return;
+               }     
+
+               if( (flg_rxstart2==0) && (flg_rxstart1==1) && ( cuartbyte !=CMDHEADER1) )  
+               {         
+                  flg_rxstart1=0;
+                  irxcount=0;
+                  return;
+               }			
+               if( (flg_rxstart2==0) && (flg_rxstart1==1) && ( cuartbyte ==CMDHEADER1) )   
+               {         
+                  flg_rxstart2=1;   
+                  irxdata[icurrentindex][irxcount++]=cuartbyte;     //--修改点
+                  return;
+               }
+               
+               if( (flg_rxstart2==1) && (flg_rxstart3==0) )  
+               {   
+                  ilen=cuartbyte; 
+                  irxdata[icurrentindex][irxcount++]=cuartbyte;   //--修改点
+                  flg_rxstart3=1;
+                 
+                  return;
+               }        
+               
+               if( flg_rxstart3==1)   
+               {        
+                  irxdata[icurrentindex][irxcount++]=cuartbyte;   //--修改点
+
+                  if(irxcount>=(ilen+3))
+                  {
+                     //memcpy((void *)irxdata2,(void *)irxdata,irxcount);      //--注释
+                     irxcount2=irxcount;
+                     
+                     if(icurrentindex==0)     //--修改点
+                        icurrentindex=1;
+                     else
+                        icurrentindex=0;
+                     
+                     flg_rx=1;
+
+                     irxcount=0;
+                     ilen=0;
+                     flg_rxstart1=0;
+                     flg_rxstart2=0;		
+                     flg_rxstart3=0;		            
+                  }                 
+               }
+            } 
+            else
+            {               
+               。。。               
+            }   
+      }
+
+4. 在main.c中，修改dowithuart所有带 icurrentindex的地方  
+
+
+  void dowithuart(void)
+  {   
+     uint32_t ipackdatalen=0;
+     uint32_t icrc=0;
+     uint32_t icrclen=0;
+     uint32_t icrcin=0;  
+     static uint32_t icrcstep=0;
+   
+     switch (irxdata[iuserindex][3])   //command        //--修改点
+     {      
+        case 0xC1:    
+              erease_flash_data();               
+              。。。         
+      
+              break;
+        }
+   }
+
+
+5. 在main.c的while中，修改下面带iuserindex和 icurrentindex的地方  
+
+
+      //uart rx
+      if (flg_rx==1)
+      {
+         flg_rx=0;   
+         //uartsendstr( (uint8_t*)"rx in\r\n" ); 
+         
+         if (icurrentindex==1)      //--修改点
+            iuserindex=0;
+         else
+            iuserindex=1;         
+         
+         islaveaddrin=irxdata[iuserindex][4];        //--修改点
+
+         //checksum
+         uint8_t ichecksum=0;
+         ichecksum = get_checksum_8((uint8_t *)irxdata[iuserindex],irxcount2-1);     //--修改点
+
+         if(ichecksum == irxdata[iuserindex][irxcount2-1])      //--修改点
+            if(islaveaddrin==LOCALSLAVEADDR)            
+               dowithuart();             
+         
+      }   
+
+
