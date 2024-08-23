@@ -1,0 +1,28 @@
+
+
+三个步骤：
+
+1.  魔法棒 -- target -- 勾选 MicroLIB
+
+2. 在main.c中， 加入
+
+   #include <stdio.h>
+
+3. 在main.c中， 加入
+
+      int fputc(int ch, FILE *f)
+      {
+         Send_Data_To_UART1((uint8_t) ch);
+         while( (USART1-> ISR & (1<<7) ) ==0 ); 
+
+         return ch;
+      }
+
+
+
+
+ 
+ 
+
+
+
