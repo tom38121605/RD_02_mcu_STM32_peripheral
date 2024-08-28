@@ -1,0 +1,258 @@
+
+
+MCU: STM32C011   (其他mcu可基本通用)
+
+硬件修改：
+   。 无
+
+一. 在 LL库中添加half uart步骤：  （？个地方）
+
+1. 建立工程     （4个地方）                            
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32C011F6U6
+   。点击start project
+   
+
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置adc，如下：    （?个地方）
+
+    。在引脚图上，把PA0设置为ADC1_IN0
+
+    。在Analog的ADC1中：  勾选 IN0
+ 
+    --------下面默认-----（同单通道单次）------------
+
+    。Clock prescaler： Synch clock mode divided by 2
+    。Resolution:  ADC 12-bit 
+    。Data Alignment:  Right
+    。End of conversion selection:  End of single conversion
+
+    。Number of Convertion:   1
+    。External Trigger convertion source；  Regular convertion lauched by software
+
+    。GPIO mode：           altemate Function open drain  (默认)
+    。把PA0设置为 No Pull 
+    。user lable：            BUTTON
+    
+    。ADC1 interrupt：  不勾选      
+
+    。其他： 默认      
+
+    --------下面默认-----（同单通道，单次）---end---------
+
+    修改点：
+    。Dma continuous requests:   Enable    //--修改点
+
+
+
+5. 设置project，如下：  （6个地方）  （同单通道单次）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。新加的ADC1选择LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+  
+二.  在keil 工程中，导入下面2个文件   
+
+   1.   Core\Src\adc.c
+   2.   Drivers\STM32C0xx_HAL_Driver\Src\stm32c0xx_ll_adc.c
+   3.   Core\Src\dma.c
+   2.   Drivers\STM32C0xx_HAL_Driver\Src\stm32c0xx_ll_dma.c
+
+
+三.  在keil 工程中，添加代码 
+
+   1 。---main.h 中---
+
+            #define ADC_DATA_SIZE   (4UL)
+
+
+            extern __IO uint8_t flg_dma_complete;
+
+            extern __IO uint16_t iadcdmadata[ADC_DATA_SIZE];
+
+           void Error_Handler_DMA(void);
+           void AdcDmaTransferComplete_Callback(void);
+           void AdcDmaTransferError_Callback(void);
+           void AdcGrpRegularOverrunError_Callback(void);
+
+
+    2。---main.c 中---
+
+         __IO uint8_t flg_dma_complete = 0;
+
+         __IO uint16_t iadcdmadata[ADC_DATA_SIZE]={0};   
+         uint16_t iadcdmavol[ADC_DATA_SIZE]={0}; 
+
+
+         void Error_Handler_DMA(void)
+         {
+          
+            uartsendstr((uint8_t*)"adc dma err\r\n");
+           
+         }
+
+         void AdcDmaTransferComplete_Callback(void)
+         {
+          
+            flg_dma_complete = 1;
+         }
+
+         void AdcDmaTransferError_Callback()
+         {
+            if(flg_dma_complete == 1)
+               flg_dma_complete = 0;
+
+            Error_Handler_DMA();
+         }
+
+         void AdcGrpRegularOverrunError_Callback(void)
+         { 
+            LL_ADC_DisableIT_OVR(ADC1); 
+            Error_Handler_DMA();
+         }
+  
+
+   3 。---main.c 中---
+
+       while
+   
+         //-------------read adc----------------------
+
+         if( iadccount >=500)
+         {
+            iadccount=0;  
+            
+            
+             if ((LL_ADC_IsEnabled(ADC1) == 1)               &amp;&amp;
+                 (LL_ADC_IsDisableOngoing(ADC1) == 0)        &amp;&amp;
+                 (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)   )
+             {
+               LL_ADC_REG_StartConversion(ADC1);
+             }
+             else
+             {
+               /* Error: ADC conversion start could not be performed */
+               Error_Handler();
+             }  
+
+         }
+         
+         if(flg_dma_complete == 1)
+         {
+
+            flg_dma_complete = 0;
+
+            for (uint16_t i = 0; i < ADC_DATA_SIZE; i++)
+            {
+               iadcdmavol[i] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcdmadata[i], LL_ADC_RESOLUTION_12B);
+
+               char strtemp[30];
+               sprintf(strtemp,"adcn: %d %d  \r\n",iadcdmadata[i],iadcdmavol[i]  );
+               uartsendstr((uint8_t*)strtemp);
+            }
+            uartsendstr((uint8_t*)"\r\n");         
+
+         }      
+      
+         //-------------read adc-----end-----------------
+
+
+   4 。--adc.c 中---
+
+        void MX_ADC1_Init(void)
+
+              /* USER CODE BEGIN ADC1_Init 1 */  
+              
+              /* Set DMA transfer addresses of source and destination */
+              LL_DMA_ConfigAddresses(DMA1,
+                                     LL_DMA_CHANNEL_1,
+                                     LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
+                                     (uint32_t)&amp;iadcdmadata,
+                                     LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
+
+              /* Set DMA transfer size */
+              LL_DMA_SetDataLength(DMA1,
+                                   LL_DMA_CHANNEL_1,
+                                   ADC_DATA_SIZE);
+
+              /* Enable DMA transfer interruption: transfer complete */
+              LL_DMA_EnableIT_TC(DMA1,
+                                 LL_DMA_CHANNEL_1);
+
+              /* Enable DMA transfer interruption: transfer error */
+              LL_DMA_EnableIT_TE(DMA1,
+                                 LL_DMA_CHANNEL_1);
+
+              /* Enable the DMA transfer */
+              LL_DMA_EnableChannel(DMA1,
+                                   LL_DMA_CHANNEL_1);  
+
+              /* USER CODE END ADC1_Init 1 */              
+              
+              。。。。。。              
+              
+              
+              /* USER CODE BEGIN ADC1_Init 2 */
+              
+              /* Configuration of ADC interruptions */
+              /* Enable interruption ADC group regular overrun */
+              LL_ADC_EnableIT_OVR(ADC1);  
+
+              /* USER CODE END ADC1_Init 2 */  
+  
+
+   4 。--stm32c0xx_it.c 中---
+
+         void DMA1_Channel1_IRQHandler(void)
+         {
+             /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+           
+            if(LL_DMA_IsActiveFlag_TC1(DMA1) == 1)
+            {
+                 /* Clear flag DMA transfer complete */
+                 LL_DMA_ClearFlag_TC1(DMA1);
+
+                 /* Call interruption treatment function */
+                 AdcDmaTransferComplete_Callback();
+            }  
+
+           /* USER CODE END DMA1_Channel1_IRQn 0 */
+
+           /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
+           
+            if(LL_DMA_IsActiveFlag_TE1(DMA1) == 1)
+            {
+                 /* Clear flag DMA transfer error */
+                 LL_DMA_ClearFlag_TE1(DMA1);
+
+                 /* Call interruption treatment function */
+                 AdcDmaTransferError_Callback();
+            }  
+
+           /* USER CODE END DMA1_Channel1_IRQn 1 */
+         }
+
+
+
+
+四。测试：
+
+     1. 把PA0连VCC（3.3V）， 串口打印出： adcn： 4095 3299
+     2. 把PA0连GND（0V），  串口打印出： adcn： 0       0
+
+
+
+
+
+
