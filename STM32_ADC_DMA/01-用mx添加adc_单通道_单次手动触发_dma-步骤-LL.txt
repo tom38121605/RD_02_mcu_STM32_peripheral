@@ -212,7 +212,7 @@ MCU: STM32C011   (其他mcu可基本通用)
               /* USER CODE END ADC1_Init 2 */  
   
 
-   4 。--stm32c0xx_it.c 中---
+   5 。--stm32c0xx_it.c 中---
 
          void DMA1_Channel1_IRQHandler(void)
          {
