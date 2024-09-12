@@ -134,8 +134,8 @@ MCU: STM32C011   (其他mcu可基本通用)
             iadccount=0;  
             
             
-             if ((LL_ADC_IsEnabled(ADC1) == 1)               &amp;&amp;
-                 (LL_ADC_IsDisableOngoing(ADC1) == 0)        &amp;&amp;
+             if ((LL_ADC_IsEnabled(ADC1) == 1)               &&
+                 (LL_ADC_IsDisableOngoing(ADC1) == 0)        &&
                  (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)   )
              {
                LL_ADC_REG_StartConversion(ADC1);
@@ -178,7 +178,7 @@ MCU: STM32C011   (其他mcu可基本通用)
               LL_DMA_ConfigAddresses(DMA1,
                                      LL_DMA_CHANNEL_1,
                                      LL_ADC_DMA_GetRegAddr(ADC1, LL_ADC_DMA_REG_REGULAR_DATA),
-                                     (uint32_t)&amp;iadcdmadata,
+                                     (uint32_t)&iadcdmadata,
                                      LL_DMA_DIRECTION_PERIPH_TO_MEMORY);
 
               /* Set DMA transfer size */
