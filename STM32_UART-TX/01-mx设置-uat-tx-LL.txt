@@ -13,7 +13,7 @@ MCU: F030CCT6   (其他mcu可通用)
 
 2. 设置时钟为HSI的48M     （1个地方）         
 
-3. 设置half uart，如下：   
+3. 设置uart，如下：   
 
     。在左边System Core\SYS中， 勾选 PA9 代替PA11， 勾选PA10代替PA12
     。在引脚图上，把PA9设置为TX
