@@ -52,7 +52,6 @@ MCU: F030CCT6   (其他mcu可通用)
           uint8_t i2c_readbytes(uint16_t idevaddr,uint8_t ireg,uint8_t *sbuf,uint16_t ilen);
 
 
-
     2. 进一步优化，可添加占空比逐渐变化的效果，在while中，添加下面的语句
 
            while (1)	
