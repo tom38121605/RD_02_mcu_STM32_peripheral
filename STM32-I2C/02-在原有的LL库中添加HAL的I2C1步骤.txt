@@ -17,10 +17,10 @@ MCU: F030CCT6   (其他mcu可通用)
 
     。Connectivity -- I2C1:   
     。I2C: I2C
-    。I2C Speed Mode:    Fast Mode
+    。I2C Speed Mode:    Fast Mode    //--修改
     。I2C Speed Frequency:  400 
 
-    。把PF0,PF1设置为 Pull-Up
+    。把PF0,PF1设置为 Pull-Up  //--修改
     。Max output speed:   low  (默认)
     。Fast mode：            Disable   (默认)
 
