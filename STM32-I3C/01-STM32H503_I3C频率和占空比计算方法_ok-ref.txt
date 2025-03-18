@@ -1,0 +1,19 @@
+
+
+1. 以在LL库中的设置为例，I3C的初始化设置如下：   （sysclk = 250MHz）
+
+    void MX_I3C1_Init(void)
+
+      LL_I3C_ConfigClockWaveForm(I3C1, 0x0059040E); 
+      LL_I3C_SetCtrlBusCharacteristic(I3C1, 0x103200f8);
+
+
+分析： 
+    上面的高电平占用时间为：   04 + 1 = 5 个时钟
+    上面的低电平占用时间为：   0e + 1 = 15 个时钟
+
+计算频率： 
+    f  =  250MHz / (5 + 15) = 12.5MHz
+ 
+计算占空比： 
+   duty = 5/(5+15)  = 25%
