@@ -1,0 +1,70 @@
+
+
+（待完成）
+
+callback参考： 01-mx设置-uart-rx中断步骤-LL.txt
+
+MCU: H503   (其他同系列mcu类似)
+
+一. 用mx添加timer3步骤：  （？20个地方）
+
+1. 建立工程     （4个地方）
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32F030CCT6
+   。点击start project
+
+2. 设置时钟为HSI的250M     （1个地方）
+
+3. 设置TIM3，如下：    （8个地方）
+
+    。勾选： Internal Clock
+
+    。Prescaler：  249                          //100khz  = 250M / 250
+    。Couter Period：  99                    //1khz    =  100k / 100    （pwm的时钟）
+   ？ 。Auto-reload preload: disable
+
+    ？。timer3 interrupt：  勾选     
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： d:\test_timer3
+    。设置工程名称： prjtim3
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files
+
+    。选择 LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      //自动生成如下（文件和代码添加） 
+
+    1) 自动添加如下文件
+         Src/tim.c
+         Inc/tim.h
+         Drivers/STM32H5xx_HAL_Driver/Src/stm32h5xx_ll_tim.c
+         Drivers/STM32H5xx_HAL_Driver/Inc/stm32h5xx_ll_tim.h
+
+    2) 在main.h中自动添加下面的代码
+        #include "stm32h5xx_ll_tim.h"
+
+    3) 在main.h中自动添加下面的代码
+        void TIM3_IRQHandler(void);
+
+
+二.  在keil 工程中，添加代码 
+
+
+--- main.c  ----
+
+      #include "tim.h"
+     MX_TIM3_Init();
+
+
+
+
+
+
+
+
