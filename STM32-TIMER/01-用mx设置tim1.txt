@@ -2,7 +2,21 @@
 
 （待完成）
 
-callback参考： 01-mx设置-uart-rx中断步骤-LL.txt
+-------定时器时间计算---------------
+
+   1).  定时 1ms 
+          。Prescaler：  249                          //1Mhz  = 250M / 250
+          。Couter Period：  999                  //1khz    =  1M / 1000  
+
+   2).  定时 10ms 
+         。Prescaler：  249                          //1Mhz  = 250M / 250
+         。Couter Period：  9999                 //100hz    =  1M / 10000  
+
+   3).  定时 1us  
+         。Prescaler：  24                       //10Mhz  = 250M / 25
+         。Couter Period：  9                 //1Mhz    =  10M / 10 
+
+
 
 MCU: H503   (其他同系列mcu类似)
 
@@ -16,15 +30,15 @@ MCU: H503   (其他同系列mcu类似)
 
 2. 设置时钟为HSI的250M     （1个地方）
 
-3. 设置TIM3，如下：    （8个地方）
+3. 设置TIM3的频率为1KHz， 如下：    （8个地方）
 
     。勾选： Internal Clock
 
-    。Prescaler：  249                          //100khz  = 250M / 250
-    。Couter Period：  99                    //1khz    =  100k / 100    （pwm的时钟）
-   ？ 。Auto-reload preload: disable
+    。Prescaler：  249                          //1Mhz  = 250M / 250
+    。Couter Period：  999                  //1khz    =  1M / 1000  
+    。Auto-reload preload: disable
 
-    ？。timer3 interrupt：  勾选     
+    。timer3 interrupt：  勾选     
 
 5. 设置project，如下：  （6个地方）
 
@@ -56,10 +70,99 @@ MCU: H503   (其他同系列mcu类似)
 二.  在keil 工程中，添加代码 
 
 
+--- tim.c  ----
+
+void MX_TIM3_Init(void)
+   ......
+
+
+  /* USER CODE BEGIN TIM3_Init 2 */
+
+   LL_TIM_ClearFlag_UPDATE(TIM3);
+
+   LL_TIM_EnableIT_UPDATE(TIM3);
+
+   LL_TIM_EnableCounter(TIM3);
+
+
+  /* USER CODE END TIM3_Init 2 */
+
+
+----- stm32h5xx_it.h -----
+
+   void TIM3_IRQHandler(void);
+
+
+----- stm32h5xx_it.c -----
+
+   void TIM3_IRQHandler(void)
+   {
+       /* USER CODE BEGIN TIM3_IRQn 0 */
+  
+       /* Check whether update interrupt is pending */
+        if(LL_TIM_IsActiveFlag_UPDATE(TIM3) == 1)
+       {
+           /* Clear the update interrupt flag */
+           LL_TIM_ClearFlag_UPDATE(TIM3);
+       }
+
+       TimerUpdate_Callback();  
+       //flg_timer3 = 1;                  //如果不想用callback，直接用这里的flg即可
+
+       /* USER CODE END TIM3_IRQn 0 */
+       /* USER CODE BEGIN TIM3_IRQn 1 */
+
+       /* USER CODE END TIM3_IRQn 1 */
+   }
+
+
+
+--- main.h ----
+
+   #include "stm32h5xx_ll_tim.h"
+
+   extern volatile uint8_t flg_timer3;
+   void TimerUpdate_Callback(void);
+
+
 --- main.c  ----
 
-      #include "tim.h"
+   #include "tim.h"
+   volatile uint8_t flg_timer3 = 0;
+
+   void TimerUpdate_Callback(void)
+   
+{
+       flg_timer3 = 1;
+   
+   
+}
+
+
+   main()
+
      MX_TIM3_Init();
+
+    while (1)
+    {
+  
+       static uint32_t itimercount=0;
+  
+       //LL_mDelay(1000); 
+      
+       if(flg_timer3>=1)
+       {
+          flg_timer3=0;
+          itimercount++;
+       }
+             
+       if(itimercount>=1)
+       {
+          itimercount=0;
+          //printf( "3\r\n");
+          LED_Toggle();
+      }
+      
 
 
 
