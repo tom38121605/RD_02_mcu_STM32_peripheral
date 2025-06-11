@@ -1,0 +1,139 @@
+
+注意1：  有时第一次的TC完成中断是无意义的， 需定义ifirs来滤掉它
+
+
+MCU: H503RBT6   (其他mcu可通用)
+
+一. 在 LL库中添加 uart tx完成中断步骤：   
+
+1. 已建立uart简单的tx工程                          
+   。可printf发送字符串
+   。可iputs发送字符数组
+   
+2. 添加 uart tx 的发送完成中断TC
+    。在mx的选项卡Connectivity中， 点选 USART2
+
+    。在下面面，选中NVIC Settings选项卡  
+          . 勾选 USART2 global interrupt
+
+
+3. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。UART1选择LL库     //原有的不变
+
+
+4. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中， 自动添加代码       （3个地方）
+
+    。---uart.c 中---
+
+         void MX_USART2_UART_Init(void)
+         {
+              ......
+
+               /* USART2 interrupt Init */
+               NVIC_SetPriority(USART2_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+               NVIC_EnableIRQ(USART2_IRQn);
+
+              /* USER CODE BEGIN USART2_Init 1 */
+
+              /* USER CODE END USART2_Init 1 */
+
+              ......
+
+         }
+
+
+    。---stm32h5xx_it.c.h 中---  （空函数）
+
+         void USART2_IRQHandler(void);
+
+
+    。---stm32h5xx_it.c.c 中---  （空函数）
+
+         void USART2_IRQHandler(void)
+         {
+             /* USER CODE BEGIN USART2_IRQn 0 */
+  
+            /* USER CODE END USART2_IRQn 0 */
+
+             /* USER CODE BEGIN USART2_IRQn 1 */
+  
+            /* USER CODE END USART2_IRQn 1 */
+
+         }
+
+
+
+
+
+二.  在keil 工程中， 手动添加代码       （4个地方）
+
+    。---main.h 中---
+
+         void uart2_tx_tc_callback( void );
+
+
+    。---main.c 中---
+
+         void uart2_tx_tc_callback( void )
+         {
+             LL_mDelay(5000); 
+             LED_On();
+         }
+
+    。---uart.c 中---
+
+         void MX_USART2_UART_Init(void)
+         {
+              ......
+
+              /* USER CODE BEGIN USART2_Init 2 */
+  
+              ATOMIC_SET_BIT(USART2->CR1, USART_CR1_TCIE);      //--add
+
+              /* USER CODE END USART2_Init 2 */
+
+         }
+
+
+    。---stm32h5xx_it.c.c 中---
+
+         void USART2_IRQHandler(void)
+         {
+             /* USER CODE BEGIN USART2_IRQn 0 */
+  
+             //以下7句为手工添加
+             uint32_t isrflags    = READ_REG(USART2->ISR);
+             uint32_t cr1its      = READ_REG(USART2->CR1);  
+  
+            if (((isrflags &  USART_ISR_TC) != 0 )  &&  ((cr1its &  USART_CR1_TCIE) != 0 ))  
+            {
+                 ATOMIC_CLEAR_BIT(USART2->CR1, USART_CR1_TCIE);
+                 uart2_tx_tc_callback();   
+             }
+
+            /* USER CODE END USART2_IRQn 0 */
+
+         }
+
+
+
+
+
+
+
+
+
+
+
+
