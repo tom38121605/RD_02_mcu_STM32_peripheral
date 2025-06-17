@@ -186,6 +186,24 @@ MCU: H503RBT6   (其他mcu可通用)
           //USART1->CR3=1<<7;     
   
 
+2. 在stm32h5xx_it.c中加入
+
+      void GPDMA1_Channel0_IRQHandler(void)
+      {        
+         //HT 
+        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<9))
+        {
+             GPDMA1_Channel0->CFCR = 1<<9;
+        }        
+        
+         //TC 
+        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<8))
+        {        
+           GPDMA1_Channel0->CFCR = 1<<8 | 1<<9;
+        }
+
+     }
+
 
 
 
