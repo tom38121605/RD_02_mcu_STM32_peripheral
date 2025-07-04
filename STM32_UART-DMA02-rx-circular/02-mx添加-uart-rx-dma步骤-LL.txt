@@ -1,0 +1,269 @@
+
+
+MCU: H503RBT6   (其他mcu可通用)
+
+一. 在 LL库中添加 uart rx dma中断步骤：     (在uart tx dma的基础上添加)
+
+1. 已建立uart简单的 tx工程     （非dma）                     
+   。可printf发送字符串
+   。可iputs发送字符数组
+   。发送完成后，触发uart的发送完成TC中断，小灯点亮  //可选
+ 
+ 
+2. 添加 uart rx dma  （ch0）
+    。在mx的选项卡System core中， 点选GPDMA1 
+    。在上面，选中channel1 ，从下拉框中选择“Standard Request"
+
+    。在下面，选中CH0:
+          . Circular Mode :       Enable                  
+          . Request          :       USART1_RX
+
+          .  Priority          :       High
+          .  Direction       :       Peripheral  to Mem
+          . Source Address Inc...        :    Disable     （默认）
+          . Destination Address Inc...  :    Enable
+
+          . 其它都是默认
+
+3. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files                            //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。新加的DMA选择LL库
+
+
+4. 保存mx，点击generate code，生成kel工程， ok       
+
+
+二.  在keil 工程中， 自动添加代码   （？个地方）
+
+    1. 增加了下面的两个文件
+       core/src/gpdma.c
+       core/inc/gpdma.h
+
+    1. 在GPDMA.c中，添加
+
+      void MX_GPDMA1_Init(void)
+      {
+         ......
+
+          /* GPDMA1 interrupt Init */
+          NVIC_SetPriority(GPDMA1_Channel1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+  
+          NVIC_EnableIRQ(GPDMA1_Channel1_IRQn);
+
+     }
+
+
+    2.  在stm32h5xx_it.h中 添加
+
+         void GPDMA1_Channel1_IRQHandler(void);
+
+    2. 在stm32h5xx_it.c中 添加
+
+        extern LL_DMA_LinkNodeTypeDef Node_GPDMA1_Channel0;
+
+       void GPDMA1_Channel1_IRQHandler(void)
+       {
+           /* USER CODE BEGIN GPDMA1_Channel1_IRQn 0 */
+
+           /* USER CODE END GPDMA1_Channel1_IRQn 0 */
+
+           /* USER CODE BEGIN GPDMA1_Channel1_IRQn 1 */
+
+           /* USER CODE END GPDMA1_Channel1_IRQn 1 */
+      }
+
+
+   3. 在main.h中， 添加
+
+      #include "stm32h5xx_ll_dma.h"
+
+   3. 在main.c中， 添加
+      #include "gpdma.h"
+
+      main
+
+         MX_GPDMA1_Init();
+
+
+
+
+
+
+   4. 在usart.c中，添加                                        （考虑把 uart.c的两部分放在一起）
+
+       void MX_USART1_UART_Init(void)
+       {
+
+         /* USER CODE BEGIN USART1_Init 0 */
+
+         /* USER CODE END USART1_Init 0 */
+ 
+         ......
+
+      #####  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};  #####        //在这下面加入
+
+        LL_DMA_InitNodeTypeDef NodeConfig = {0};
+        LL_DMA_LinkNodeTypeDef Node_GPDMA1_Channel0 = {0};
+        LL_DMA_InitLinkedListTypeDef DMA_InitLinkedListStruct = {0};
+
+            ......
+ 
+     }
+
+   4. 在usart.c中，添加
+
+       void MX_USART1_UART_Init(void)
+       {
+
+         ......
+
+
+        /* USART1 DMA Init */
+
+        /* GPDMA1_REQUEST_USART1_RX Init */
+        NodeConfig.DestAllocatedPort = LL_DMA_DEST_ALLOCATED_PORT0;
+        NodeConfig.DestHWordExchange = LL_DMA_DEST_HALFWORD_PRESERVE;
+        NodeConfig.DestByteExchange = LL_DMA_DEST_BYTE_PRESERVE;
+        NodeConfig.DestBurstLength = 1;
+        NodeConfig.DestIncMode = LL_DMA_DEST_INCREMENT;
+        NodeConfig.DestDataWidth = LL_DMA_DEST_DATAWIDTH_BYTE;
+        NodeConfig.SrcAllocatedPort = LL_DMA_SRC_ALLOCATED_PORT0;
+        NodeConfig.SrcByteExchange = LL_DMA_SRC_BYTE_PRESERVE;
+        NodeConfig.DataAlignment = LL_DMA_DATA_ALIGN_ZEROPADD;
+        NodeConfig.SrcBurstLength = 1;
+        NodeConfig.SrcIncMode = LL_DMA_SRC_FIXED;
+        NodeConfig.SrcDataWidth = LL_DMA_SRC_DATAWIDTH_BYTE;
+        NodeConfig.TransferEventMode = LL_DMA_TCEM_BLK_TRANSFER;
+        NodeConfig.TriggerPolarity = LL_DMA_TRIG_POLARITY_MASKED;
+        NodeConfig.BlkHWRequest = LL_DMA_HWREQUEST_SINGLEBURST;
+        NodeConfig.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
+        NodeConfig.Request = LL_GPDMA1_REQUEST_USART1_RX;
+        NodeConfig.Mode = LL_DMA_NORMAL;
+        NodeConfig.UpdateRegisters = (LL_DMA_UPDATE_CTR1 | LL_DMA_UPDATE_CTR2 | LL_DMA_UPDATE_CBR1 | LL_DMA_UPDATE_CSAR 
+                             | LL_DMA_UPDATE_CDAR | LL_DMA_UPDATE_CTR3 | LL_DMA_UPDATE_CBR2 | LL_DMA_UPDATE_CLLR);
+        NodeConfig.NodeType = LL_DMA_GPDMA_LINEAR_NODE;
+        LL_DMA_CreateLinkNode(&NodeConfig, &Node_GPDMA1_Channel0);
+
+        LL_DMA_ConnectLinkNode(&Node_GPDMA1_Channel0, LL_DMA_CLLR_OFFSET5, &Node_GPDMA1_Channel0, LL_DMA_CLLR_OFFSET5);
+
+        /* Next function call is commented because it will not compile as is. 
+           The Node structure address has to be cast to an unsigned int (uint32_t)pNode_DMAxCHy */
+        /*
+
+        */
+        LL_DMA_SetLinkedListBaseAddr(GPDMA1, LL_DMA_CHANNEL_0, (uint32_t)&Node_GPDMA1_Channel0);
+
+        DMA_InitLinkedListStruct.Priority = LL_DMA_LOW_PRIORITY_LOW_WEIGHT;
+        DMA_InitLinkedListStruct.LinkStepMode = LL_DMA_LSM_FULL_EXECUTION;
+        DMA_InitLinkedListStruct.LinkAllocatedPort = LL_DMA_LINK_ALLOCATED_PORT0;
+        DMA_InitLinkedListStruct.TransferEventMode = LL_DMA_TCEM_BLK_TRANSFER;
+        LL_DMA_List_Init(GPDMA1, LL_DMA_CHANNEL_0, &DMA_InitLinkedListStruct);
+
+
+        #####   /* USART1 interrupt Init */      #####                                                       //在这上面加入
+ 
+         ......
+
+    }
+
+
+
+
+
+
+
+//三.  在keil 工程中， 手动添加代码，
+
+   //1.  在main.h中， 添加
+
+       void LL_UART_Transmit_DMA( DMA_Channel_TypeDef *const dmainst, const uint8_t *pData, uint32_t Size);
+       void LL_DMA_Start_IT( DMA_Channel_TypeDef *const dmainst, uint32_t SrcAddress, uint32_t DstAddress, uint32_t SrcDataSize);
+
+
+   //1. 在main.c中， 添加
+
+         #define TXBUFFERSIZE  6
+         uint8_t aTxBuffer[6+1] = "123456";
+	
+   //1. 在main.c中， 添加
+
+      main
+
+        ......
+
+
+
+  
+      //--- 设置dma数据，开启dma，使能uart的dma的发送 ---
+
+       //传输数据长度
+       MODIFY_REG(GPDMA1_Channel0->CBR1, DMA_CBR1_BNDT, (TXBUFFERSIZE & DMA_CBR1_BNDT));
+           //GPDMA1_Channel0->CBR1 = 6;  
+
+       //清0所有CFCR中的下列中断标志
+       SET_BIT(GPDMA1_Channel0->CFCR, DMA_CSR_TCF | DMA_CSR_HTF | DMA_CSR_DTEF | DMA_CSR_ULEF | DMA_CSR_USEF | DMA_CSR_SUSPF | DMA_CSR_TOF);
+           //GPDMA1_Channel0->CFCR =  1<<8 |1<<9 | 1<<10 | 1<<11 | 1<<12 | 1<<13 | 1<<14; 
+
+       //设置通道1的源数据地址 
+       WRITE_REG(GPDMA1_Channel0->CSAR, (uint32_t)aTxBuffer);
+         //GPDMA1_Channel0->CSAR = (uint32_t)aTxBuffer;    
+
+       //设置通道1的目标数据地址
+       WRITE_REG(GPDMA1_Channel0->CDAR, (uint32_t)&USART1->TDR);
+         //GPDMA1_Channel0->CDAR = (uint32_t)&USART1->TDR;    
+          
+        //使能完成中断,传输err中断，更新链接err中断，用户设置err中断，溢出中断
+       SET_BIT(GPDMA1_Channel0->CCR, DMA_CCR_TCIE | DMA_CCR_DTEIE | DMA_CCR_ULEIE | DMA_CCR_USEIE | DMA_CCR_TOIE);
+          //GPDMA1_Channel0->CCR = 1<<8 | 1<<10 | 1<<11 | 1<<12 | 1<<14;                        
+
+       //使能半完成中断
+       SET_BIT(GPDMA1_Channel0->CCR, DMA_CCR_HTIE);
+          //GPDMA1_Channel0->CCR  |=1<<9;                              
+
+       //开启 dma ch0
+       LL_DMA_EnableChannel(GPDMA1, LL_DMA_CHANNEL_0);
+          //GPDMA1_Channel0->CCR  |=1<<0;                  
+
+       //清0传输完成的中断标志
+       SET_BIT(USART1->ICR, USART_ICR_TCCF);
+         //USART1->ICR |= 1<<6; 
+
+       //使能uart的dma的发送  
+       SET_BIT(USART1->CR3, USART_CR3_DMAT);
+          //USART1->CR3=1<<7;     
+  
+
+//2. 在stm32h5xx_it.c中加入
+
+      void GPDMA1_Channel0_IRQHandler(void)
+      {        
+         //HT 
+        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<9))
+        {
+             GPDMA1_Channel0->CFCR = 1<<9;
+        }        
+        
+         //TC 
+        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<8))
+        {        
+           GPDMA1_Channel0->CFCR = 1<<8 | 1<<9;
+        }
+
+     }
+
+
+
+
+
+
+
+
+
+
