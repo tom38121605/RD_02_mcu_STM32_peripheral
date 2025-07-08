@@ -2,7 +2,7 @@
 
 CTR2.11:  BREQ 
 
- 当SWREQ=0时  （dma的数据流中有硬件外设）
+ 当SWREQ=0时  （ 硬件到mem，  硬件到硬件）
 
    1. BREQ =0：   来一个包裹，送一个包裹
 
@@ -12,7 +12,7 @@ CTR2.11:  BREQ
 
 补充：  
 
-   SWREQ=0：  dma的数据流中有硬件外设
+   SWREQ=0： 硬件到mem，  硬件到硬件
 
    SWREQ=1：  dma的数据流中只有 mem 到 mem
 
