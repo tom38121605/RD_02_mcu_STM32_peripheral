@@ -1,0 +1,17 @@
+
+
+问题1：  hal_txrx_rx  同时打开tc和idle时，接收长度为6， pc发送8个字符时，出现卡住
+
+     1. 移植： d:\test2   -->  d:\test1
+     2. hal_txrx_rx    -->  LL_rx
+
+
+问题2:   LL_circular_rx 模块移植后，dma中断没有反应
+
+     1. 移植：  d:\test3   -->  D:\sample_mcu_STM32H503RB_all\LL-gpio-test
+     2. hal_circular_rx     -->  LL_circular_rx
+
+
+问题3： 把LL_TX(CH1) 和 LL_CIRCULAR_RX(CH0) 合并在一起
+
+
