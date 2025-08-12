@@ -11,6 +11,7 @@ MCU: H503RBT6   (其他mcu可通用)
  
  
 2. 添加 uart rx dma  （ch0）
+
     。在mx的选项卡System core中， 点选GPDMA1 
     。在上面，选中channel1 ，从下拉框中选择“Standard Request"
 
@@ -40,7 +41,7 @@ MCU: H503RBT6   (其他mcu可通用)
 4. 保存mx，点击generate code，生成kel工程， ok       
 
 
-二.  在keil 工程中， 自动添加代码   （？个地方）
+二.  在keil 工程中， 自动添加代码    
 
     1. 增加了下面的两个文件
        core/src/gpdma.c
@@ -179,84 +180,318 @@ MCU: H503RBT6   (其他mcu可通用)
 
 
 
-//三.  在keil 工程中， 手动添加代码，
-
-   //1.  在main.h中， 添加
-
-       void LL_UART_Transmit_DMA( DMA_Channel_TypeDef *const dmainst, const uint8_t *pData, uint32_t Size);
-       void LL_DMA_Start_IT( DMA_Channel_TypeDef *const dmainst, uint32_t SrcAddress, uint32_t DstAddress, uint32_t SrcDataSize);
+三.  在keil 工程中， 手动添加代码，
 
 
-   //1. 在main.c中， 添加
+1. 在uart.c中修改，把下面的语句移到函数MX_USART1_UART_Init的外面  
 
-         #define TXBUFFERSIZE  6
-         uint8_t aTxBuffer[6+1] = "123456";
-	
-   //1. 在main.c中， 添加
+      LL_DMA_LinkNodeTypeDef Node_GPDMA1_Channel0 = {0};    //--move 
+
+
+
+2. 在 stm32h5xx_it.c中，添加
+
+      void GPDMA1_Channel0_IRQHandler(void)
+      {
+        do_dma_handler();         //--add   
+      }
+
+
+      void USART1_IRQHandler(void)
+      {  
+        do_uart_handler();         //--add 
+      }
+
+
+
+3. 在main.h中，添加下面
+
+      #define RX_BUFFER_SIZE   20                               //--add 
+
+      void dma_channel_init(void);                              //--add
+      void uart_init(void);                                     //--add
+      void dma_rx_start(  uint8_t *pData, uint16_t Size);       //--add
+      void uart_rx_start( uint8_t *pData, uint16_t Size);       //--add
+
+      void LL_UARTEx_RxEventCallback2( uint16_t Size);          //--add
+      void do_dma_handler(void);                               //--add
+      void do_uart_handler(void);                              //--add
+
+
+
+
+4.在main.c中，添加下面 
+
+      #include "string.h"   //--add
+
+      __IO uint32_t     uwNbReceivedChars;     //--add
+
+      uint8_t aRXBufferUser[RX_BUFFER_SIZE*5];       //--add
+      uint8_t aRXBufferUser2[RX_BUFFER_SIZE*5];      //--add
+
+      extern LL_DMA_LinkNodeTypeDef    Node_GPDMA1_Channel0;     //--add
+
+
+
+
+4.在main.c中，添加下面 
+
+
+      //--------------------------------- dma circular rx ---------------------------------------
+
+      void dma_channel_init(void)
+      {
+          
+          //CTR1
+          //1<<19, 内存地址递增 
+          //0<<16, 目标数据都是按字节传输
+          //0<<11, 右对齐，不足左边补0
+          //0<<3,  外设地址固定
+          //0<<0,  源数据都是按字节传输
+          //0<<14, 0<<30, 源数据和目标数据都使用默认的端口0
+          //0<<26, 目标字节不进行数据交换
+          //0<<20, 目标数据每次只搬运1个字节，快递员一次只送一个包裹
+          //0<<4,  源数据每次只搬运1个字节，快递员一次只送一个包裹
+          //HAL_DMAEx_List_BuildNode(&NodeConfig, &Node_GPDMA1_Channel0);    
+             Node_GPDMA1_Channel0.LinkRegisters[0] = 1<<19 | 0<<16 | 0<<11 | 0<<3  | 0<<0 |
+                                                           0<<14 | 0<<30 | 0<<26 | 0<<20 | 0<<4; 
+
+          //CTR2                                                 
+          //0<<30, 每送完一个包裹，就触发一个事件通知
+          //21<<0, 指定DMA搬运的数据源为uart1的RDR   
+          // 0<<12,按固定节奏搬完所有包裹（BNDT 指定数量）   //不能提前结束    
+             Node_GPDMA1_Channel0.LinkRegisters[1] = 0<<30 | 21<<0 | 0<<12;
+       
+
+          //CLLR
+          //Write the next node's addr to CLLR's LA, enable all update x6 (CTR1, CTR2, CBR1, CSAR, CDAR, CLLR)
+          //HAL_DMAEx_List_SetCircularMode(&List_GPDMA1_Channel0);
+             Node_GPDMA1_Channel0.LinkRegisters[5] = ( (uint32_t)(&Node_GPDMA1_Channel0) & (0x3fff<<2) )
+                                                            | (1<<31 | 1<<30 | 1<<29 | 1<<28 | 1<<27 | 1<<16);
+
+
+          //init the dma regs x7 （下面是初值，以后会根据需要修改）
+          //HAL_DMAEx_List_Init(&handle_GPDMA1_Channel0);    
+             GPDMA1_Channel0->CCR |= ( 1<<2 | 1<<1 );         //pause dma, reset dma
+             while ((GPDMA1_Channel0->CCR & (1<<0) ) != 0);  //wait dma to close
+             
+             // CCR.23-22=0,低优先级， 
+             // CCR.16=0,自动执行整个链表直到最后一个节点
+             // CCR.17=0,指定快递通道：使用默认的通道0
+             GPDMA1_Channel0->CCR &= ~(3<<22 | 1<<16 | 1<<17);  //
+             GPDMA1_Channel0->CTR1 = 0;
+             
+             //CTR2.31-30 =0, 每传输完一个包裹就通知 
+             GPDMA1_Channel0->CTR2 &= ~(3<<30 );
+          
+             GPDMA1_Channel0->CBR1 = 0;    
+             GPDMA1_Channel0->CSAR = 0;    
+             GPDMA1_Channel0->CDAR = 0;    
+             GPDMA1_Channel0->CLLR = 0;    
+             
+      }
+
+      void uart_init(void)
+      {
+       
+        //--- uart clock init ---
+        LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK2);
+        LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+        LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+        LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
+        
+        
+        //--- uart gpio init ---
+        LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+        //PA1   ------> USART1_RX
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_1;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_8;
+        LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        //PB14   ------> USART1_TX
+        GPIO_InitStruct.Pin = LL_GPIO_PIN_14;
+        GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+        GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+        GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+        GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+        GPIO_InitStruct.Alternate = LL_GPIO_AF_4;
+        LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+        
+
+         //--- uart interrupt Init ---
+         NVIC_SetPriority(USART1_IRQn, NVIC_EncodePriority(NVIC_GetPriorityGrouping(),0, 0));
+         NVIC_EnableIRQ(USART1_IRQn);
+         
+
+
+        LL_USART_InitTypeDef USART_InitStruct = {0};  
+        USART_InitStruct.PrescalerValue = LL_USART_PRESCALER_DIV1;
+        USART_InitStruct.BaudRate = 2000000;
+        USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+        USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+        USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+        USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+        USART_InitStruct.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
+        USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+        LL_USART_Init(USART1, &USART_InitStruct); 
+        
+         //__HAL_UART_ENABLE(&huart1);  
+           USART1->CR1 |= 1<<0;      //CR1.0=1 , 打开uart
+           
+      }
+
+      void dma_rx_start(  uint8_t *pData, uint16_t Size)
+      {
+
+           Node_GPDMA1_Channel0.LinkRegisters[2] = Size;                       //dma数量
+           
+           Node_GPDMA1_Channel0.LinkRegisters[3] = (uint32_t)&USART1->RDR;   //源地址
+
+           Node_GPDMA1_Channel0.LinkRegisters[4] = (uint32_t)pData;           //目标地址
+
+
+             GPDMA1_Channel0->CCR |= 1<<8 | 1<<10 | 1<<11 | 1<<12 | 1<<13;  //使能：传输完成中断，传输err中断，更新链接err中断，用户设置err中断，溢出中断
+             GPDMA1_Channel0->CCR |= 1<<9;                                      //使能：半传输完成中断
+             
+             //把本节点的高16位地址写入到CLBAR的LBA中 （所有节点的高16位是相同的，而且不需要自动更新 ）
+             GPDMA1_Channel0->CLBAR = (uint32_t)(&Node_GPDMA1_Channel0) & (0xffff<<16)  ;  
+             
+             //把本节点的低16位地址和updatex6写入到CLLR的LA中  （这里的下一个节点是reg5，和本节点是同一个节点，所以会循环执行本节点）
+             GPDMA1_Channel0->CLLR  = ( (uint32_t)(&Node_GPDMA1_Channel0) & (0x3fff<<2) ) | (1<<31 | 1<<30 | 1<<29 | 1<<28 | 1<<27 | 1<<16);
+           
+           //__HAL_DMA_ENABLE(hdma);
+              GPDMA1_Channel0->CCR |= 1<<0;   //设置CCR.0 = 1，开启dma ch0
+
+      }
+
+      void uart_rx_start( uint8_t *pData, uint16_t Size)
+      {       
+        USART1->CR3 |= 1<<0;   //EIE ,enable uart err interrupt
+        USART1->CR3 |= 1<<6;   //DMAR , open uart dma rx
+        
+          USART1->ICR |= 1<<4;   // clear uart idle flag
+          USART1->CR1 |= 1<<4;   // enable uart idle interrupt      
+      }
+
+      void LL_UARTEx_RxEventCallback2( uint16_t Size)
+      {
+        static uint8_t old_pos = 0;
+        uint8_t *ptemp;
+        uint8_t i;
+
+        if (Size != old_pos)
+        {
+        
+          if (Size > old_pos)
+          { 
+             uwNbReceivedChars = Size - old_pos;
+             memcpy( aRXBufferUser2, aRXBufferUser +old_pos, uwNbReceivedChars);
+          }
+          else
+          {
+             uwNbReceivedChars = RX_BUFFER_SIZE - old_pos;
+             memcpy( aRXBufferUser2, aRXBufferUser +old_pos, uwNbReceivedChars);
+            
+             if (Size > 0)
+             {
+                memcpy( aRXBufferUser2+uwNbReceivedChars, aRXBufferUser, Size );        
+                uwNbReceivedChars += Size;
+             }             
+          }
+          iputbytes1(aRXBufferUser2,uwNbReceivedChars);
+        }
+       
+        old_pos = Size;
+      }
+
+      void do_dma_handler(void)
+      {
+        //---ht ---
+        
+        if ( (GPDMA1_Channel0->CSR & (1<<9)) != 0)      //yes
+        {
+
+          if ( (GPDMA1_Channel0->CCR & (1<<9)) != 0)    //yes
+          {
+
+              GPDMA1_Channel0->CFCR = 1<<9;
+
+      iputs1( "\r\n ht");          
+              
+               LL_UARTEx_RxEventCallback2( RX_BUFFER_SIZE/ 2);        
+            
+          }
+        }
+
+        //--- tc ---
+        
+        if ( (GPDMA1_Channel0->CSR & (1<<8)) != 0)      //yes
+        {
+
+          if ( (GPDMA1_Channel0->CCR & (1<<8)) != 0)    //yes
+          {
+
+            //GPDMA1_Channel0->CFCR = 1<<8 | 1<<9;
+            GPDMA1_Channel0->CFCR = 1<<8 ;
+
+      iputs1( "\r\n tc");       
+        
+            LL_UARTEx_RxEventCallback2(  RX_BUFFER_SIZE);     
+            
+          }
+        }
+        
+      }
+
+      void do_uart_handler(void)
+      {
+           
+        if( USART1->ISR & (1<<4) )         //here  ，yes      
+        {
+
+          USART1->ICR = 1<<4;
+
+          if ( USART1->CR3 & (1<<6))      //yes
+          {
+            uint16_t nb_remaining_rx_data = (uint16_t) GPDMA1_Channel0->CBR1  & 0xFFFF;
+               
+            if ((nb_remaining_rx_data > 0)   && (nb_remaining_rx_data < RX_BUFFER_SIZE))   //yes
+            {
+
+      iputs1( "\r\n idl"); 
+
+              LL_UARTEx_RxEventCallback2( RX_BUFFER_SIZE - nb_remaining_rx_data );
+              
+      iputs1( "\r\n");        
+       
+            }
+            return;
+          }
+
+        }
+
+      }
+
+      //--------------------------------- dma circular rx -------end--------------------------------
+
+
+4. 在main.c中，添加下面 
 
       main
 
-        ......
-
-
-
-  
-      //--- 设置dma数据，开启dma，使能uart的dma的发送 ---
-
-       //传输数据长度
-       MODIFY_REG(GPDMA1_Channel0->CBR1, DMA_CBR1_BNDT, (TXBUFFERSIZE & DMA_CBR1_BNDT));
-           //GPDMA1_Channel0->CBR1 = 6;  
-
-       //清0所有CFCR中的下列中断标志
-       SET_BIT(GPDMA1_Channel0->CFCR, DMA_CSR_TCF | DMA_CSR_HTF | DMA_CSR_DTEF | DMA_CSR_ULEF | DMA_CSR_USEF | DMA_CSR_SUSPF | DMA_CSR_TOF);
-           //GPDMA1_Channel0->CFCR =  1<<8 |1<<9 | 1<<10 | 1<<11 | 1<<12 | 1<<13 | 1<<14; 
-
-       //设置通道1的源数据地址 
-       WRITE_REG(GPDMA1_Channel0->CSAR, (uint32_t)aTxBuffer);
-         //GPDMA1_Channel0->CSAR = (uint32_t)aTxBuffer;    
-
-       //设置通道1的目标数据地址
-       WRITE_REG(GPDMA1_Channel0->CDAR, (uint32_t)&USART1->TDR);
-         //GPDMA1_Channel0->CDAR = (uint32_t)&USART1->TDR;    
-          
-        //使能完成中断,传输err中断，更新链接err中断，用户设置err中断，溢出中断
-       SET_BIT(GPDMA1_Channel0->CCR, DMA_CCR_TCIE | DMA_CCR_DTEIE | DMA_CCR_ULEIE | DMA_CCR_USEIE | DMA_CCR_TOIE);
-          //GPDMA1_Channel0->CCR = 1<<8 | 1<<10 | 1<<11 | 1<<12 | 1<<14;                        
-
-       //使能半完成中断
-       SET_BIT(GPDMA1_Channel0->CCR, DMA_CCR_HTIE);
-          //GPDMA1_Channel0->CCR  |=1<<9;                              
-
-       //开启 dma ch0
-       LL_DMA_EnableChannel(GPDMA1, LL_DMA_CHANNEL_0);
-          //GPDMA1_Channel0->CCR  |=1<<0;                  
-
-       //清0传输完成的中断标志
-       SET_BIT(USART1->ICR, USART_ICR_TCCF);
-         //USART1->ICR |= 1<<6; 
-
-       //使能uart的dma的发送  
-       SET_BIT(USART1->CR3, USART_CR3_DMAT);
-          //USART1->CR3=1<<7;     
-  
-
-//2. 在stm32h5xx_it.c中加入
-
-      void GPDMA1_Channel0_IRQHandler(void)
-      {        
-         //HT 
-        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<9))
-        {
-             GPDMA1_Channel0->CFCR = 1<<9;
-        }        
+        iputs1( "start\r\n");
         
-         //TC 
-        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<8))
-        {        
-           GPDMA1_Channel0->CFCR = 1<<8 | 1<<9;
-        }
-
-     }
+         //dma rx start
+         dma_rx_start( aRXBufferUser, RX_BUFFER_SIZE); 
+           
+         //uart rx  start 
+         uart_rx_start( aRXBufferUser, RX_BUFFER_SIZE);
+         
 
 
 
