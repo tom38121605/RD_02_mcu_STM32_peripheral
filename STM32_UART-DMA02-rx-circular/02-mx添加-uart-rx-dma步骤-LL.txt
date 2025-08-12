@@ -232,8 +232,6 @@ MCU: H503RBT6   (其他mcu可通用)
       extern LL_DMA_LinkNodeTypeDef    Node_GPDMA1_Channel0;     //--add
 
 
-
-
 4.在main.c中，添加下面 
 
 
@@ -480,17 +478,14 @@ MCU: H503RBT6   (其他mcu可通用)
       //--------------------------------- dma circular rx -------end--------------------------------
 
 
+
 4. 在main.c中，添加下面 
 
       main
 
-        iputs1( "start\r\n");
-        
-         //dma rx start
-         dma_rx_start( aRXBufferUser, RX_BUFFER_SIZE); 
-           
-         //uart rx  start 
-         uart_rx_start( aRXBufferUser, RX_BUFFER_SIZE);
+         iputs1( "start\r\n");                                                     //--add 
+         dma_rx_start( aRXBufferUser, RX_BUFFER_SIZE);           //--add
+         uart_rx_start( aRXBufferUser, RX_BUFFER_SIZE);            //--add
          
 
 
