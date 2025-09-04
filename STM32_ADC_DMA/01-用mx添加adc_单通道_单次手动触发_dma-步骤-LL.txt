@@ -20,7 +20,7 @@ MCU: STM32C011   (其他mcu可基本通用)
 
     。在引脚图上，把PA0设置为ADC1_IN0
 
-    。在Analog的ADC1中：  勾选 IN0
+    。在左边列表的Analog的ADC1中：  勾选 IN0 （应是自动勾选的）
  
     --------下面默认-----（同单通道单次）------------
 
@@ -34,7 +34,7 @@ MCU: STM32C011   (其他mcu可基本通用)
 
     。GPIO mode：           altemate Function open drain  (默认)
     。把PA0设置为 No Pull 
-    。user lable：            BUTTON
+    。user lable：            ADC0
     
     。ADC1 interrupt：  不勾选      
 
