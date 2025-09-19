@@ -43,6 +43,17 @@ MCU: STM32C011   (其他mcu可通用)
 
     。其他： 默认      
 
+   --- 多通道adc选项 ---
+
+    。Number of conversion：  2
+    。Scan conersion mode    Enabled
+
+   下面会同时显示出两个Rank，点开Rank下面还会显示出Channel选项
+    。 Rank              1
+        Channel         Channel1
+
+    。 Rank              2
+        Channel         Channel4
 
 
 5. 设置project，如下：  （6个地方）
