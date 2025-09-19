@@ -1,13 +1,13 @@
 
 
-MCU: F030CCT6   (其他mcu可通用)
+MCU:  STM32C011F6U6TR  (其他mcu可通用)
 
 一. 在 LL库中添加 uart tx步骤：   
 
 1. 建立工程     （4个地方）                            
    。双击打开mx
    。选择 start my project from mcu
-   。在part number位置，输入mcu型号： STM32F030CCT6  
+   。在part number位置，输入mcu型号： STM32C011F6U6TR
    。点击start project
    
 
@@ -22,10 +22,10 @@ MCU: F030CCT6   (其他mcu可通用)
     。mode： Asynchronous
     。Baud Rate： 1M
 
-    。GPIO mode：           altemate Function push pull  (默认)
-    。把PA9设置为 Pull-Up
-    。Max output speed:  high
-    。Fast mode：           disable       (好像都可以)     
+    。GPIO mode：         altemate Function push pull  (默认)
+    。把PA9, PA10设置为  No Pull 
+    。Max output speed:  very high
+    。Fast mode：           Enable       (好像都可以)     
     。user lable：            UART_TX
     
     。USART1 interrupt：  不勾选    
