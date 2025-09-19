@@ -19,8 +19,7 @@ MCU: STM32C011   (其他mcu可通用)
 3. 设置adc，如下：    （?个地方）
 
     。在引脚图上，把PA0设置为ADC1_IN0
-
-    。在Analog的ADC1中：  勾选 IN0
+    。在Analog的ADC1中：  勾选 IN0（一般上面一步选引脚后会自动勾选）
 
     下面默认
     。Clock prescaler： Synch clock mode divided by 2
@@ -33,11 +32,13 @@ MCU: STM32C011   (其他mcu可通用)
 
     。GPIO mode：           altemate Function open drain  (默认)
     。把PA0设置为 No Pull 
-    。user lable：            BUTTON
+    。user lable：            ADC0
     
     。ADC1 interrupt：  不勾选      
 
     。其他： 默认      
+
+
 
 5. 设置project，如下：  （6个地方）
 
