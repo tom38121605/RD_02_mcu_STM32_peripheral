@@ -1,5 +1,5 @@
 
-（已基本验证 -- ok ）
+（已验证，ok）
 
 
 MCU: STM32C011   (其他mcu可通用)
@@ -237,29 +237,47 @@ MCU: STM32C011   (其他mcu可通用)
      ADC_Activate();   
     
  
-     while (1) 
-    
+     while (1)
+     {
+     
        LL_mDelay(1000);
-    
-    
+       
+       
        //read adc
         char str1[30];
-        
-       ConversionStartPoll_ADC_GrpRegular();
-       uhADCxConvertedData = LL_ADC_REG_ReadConversionData32(ADC1);           //库函数                                       
-       uhADCxConvertedData_Voltage_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, uhADCxConvertedData, LL_ADC_RESOLUTION_12B);
-
-       sprintf(str1,"adc0: %d %d  \r\n",uhADCxConvertedData,uhADCxConvertedData_Voltage_mVolt );
+           
+       
+       LL_ADC_REG_StartConversion(ADC1);
+       for(int i=0; i<5; i++)
+       {
+          while(LL_ADC_IsActiveFlag_EOC(ADC1) == 0);  
+          iadcvalue[i] = LL_ADC_REG_ReadConversionData32(ADC1);
+          LL_ADC_ClearFlag_EOC(ADC1);  
+       }    
+       
+                                                  
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[0], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc0: %d %d  \r\n",iadcvalue[0],iadcvol );
        iputs1(str1);
-     
-     
-       //ConversionStartPoll_ADC_GrpRegular();
-       uhADCxConvertedData = LL_ADC_REG_ReadConversionData32(ADC1);                                                  
-       uhADCxConvertedData_Voltage_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, uhADCxConvertedData, LL_ADC_RESOLUTION_12B);
-
-       sprintf(str1,"adc1: %d %d  \r\n",uhADCxConvertedData,uhADCxConvertedData_Voltage_mVolt );
+                                                         
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[1], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc1: %d %d  \r\n",iadcvalue[1],iadcvol );
        iputs1(str1);
+                                                      
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[2], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc2: %d %d  \r\n",iadcvalue[2],iadcvol );
+       iputs1(str1); 
+                                                           
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[3], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc3: %d %d  \r\n",iadcvalue[3],iadcvol );
+       iputs1(str1); 
+                                                         
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[4], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc4: %d %d  \r\n",iadcvalue[4],iadcvol );
+       iputs1(str1);
+       
        iputs1("\r\n");   
+    
 
 
 
