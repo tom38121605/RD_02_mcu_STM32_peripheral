@@ -1,9 +1,6 @@
 
+（已基本验证 -- ok ）
 
-
-（待完成）
-
-======================参考============================================
 
 MCU: STM32C011   (其他mcu可通用)
 
@@ -32,9 +29,10 @@ MCU: STM32C011   (其他mcu可通用)
     。Data Alignment:  Right
     。End of conversion selection:  End of single conversion
 
-    。Number of Convertion:   1
+    //。Number of Convertion:   1
     。External Trigger convertion source；  Regular convertion lauched by software
 
+    //gpio 设置 （默认）
     。GPIO mode：           altemate Function open drain  (默认)
     。把PA0设置为 No Pull 
     。user lable：            ADC0
@@ -77,7 +75,7 @@ MCU: STM32C011   (其他mcu可通用)
    2.   Drivers\STM32C0xx_HAL_Driver\Src\stm32c0xx_ll_adc.c
 
 
-//三.  在keil 工程中，添加代码 
+三.  在keil 工程中，添加代码 
 
     。---main.h 中---
 
@@ -85,7 +83,7 @@ MCU: STM32C011   (其他mcu可通用)
 
          void ConversionStartPoll_ADC_GrpRegular(void);
 
-         uint16_t getadcvalue(void);
+         //uint16_t getadcvalue(void);
 
 
     。---main.c 中---
@@ -233,17 +231,35 @@ MCU: STM32C011   (其他mcu可通用)
 
     。---main.c 中---
 
-      main()
+     main(void)
+ 
 
-          ADC_Activate();
+     ADC_Activate();   
+    
+ 
+     while (1) 
+    
+       LL_mDelay(1000);
+    
+    
+       //read adc
+        char str1[30];
+        
+       ConversionStartPoll_ADC_GrpRegular();
+       uhADCxConvertedData = LL_ADC_REG_ReadConversionData32(ADC1);           //库函数                                       
+       uhADCxConvertedData_Voltage_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, uhADCxConvertedData, LL_ADC_RESOLUTION_12B);
 
-          while 
-                 LL_mDelay(100);
+       sprintf(str1,"adc0: %d %d  \r\n",uhADCxConvertedData,uhADCxConvertedData_Voltage_mVolt );
+       iputs1(str1);
+     
+     
+       //ConversionStartPoll_ADC_GrpRegular();
+       uhADCxConvertedData = LL_ADC_REG_ReadConversionData32(ADC1);                                                  
+       uhADCxConvertedData_Voltage_mVolt = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, uhADCxConvertedData, LL_ADC_RESOLUTION_12B);
 
-                 //get adc value
-                 uint16_t iadcvalue =0;
-                 iadcvalue=getadcvalue();     
-                 //uartsendcmd((uint8_t*)&iadcvalue,2);
+       sprintf(str1,"adc1: %d %d  \r\n",uhADCxConvertedData,uhADCxConvertedData_Voltage_mVolt );
+       iputs1(str1);
+       iputs1("\r\n");   
 
 
 
