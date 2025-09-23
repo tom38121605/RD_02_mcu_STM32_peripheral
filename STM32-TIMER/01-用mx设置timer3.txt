@@ -1,5 +1,5 @@
 
--------定时器时间计算---------------
+-------定时器时间计算----250M----------
 
    1).  定时 1ms 
           。Prescaler：  249                          //1Mhz  = 250M / 250
@@ -12,6 +12,13 @@
    3).  定时 1us  
          。Prescaler：  24                       //10Mhz  = 250M / 25
          。Couter Period：  9                 //1Mhz    =  10M / 10 
+
+
+-------定时器时间计算----48M----------
+
+   1).  定时 1ms 
+          。Prescaler：  47                           //1Mhz  = 48M / 48
+          。Couter Period：  999                  //1khz    =  1M / 1000  
 
 
 
@@ -32,7 +39,7 @@ MCU: H503   (其他同系列mcu类似)
     。勾选： Internal Clock
 
     。Prescaler：  249                          //1Mhz  = 250M / 250
-    。Couter Period：  999                  //1khz    =  1M / 1000  
+    。Couter Period：  999                   //1khz   =  1M / 1000  
     。Auto-reload preload: disable
 
     。timer3 interrupt：  勾选     
@@ -77,11 +84,8 @@ MCU: H503   (其他同系列mcu类似)
      /* USER CODE BEGIN TIM3_Init 2 */
 
       LL_TIM_ClearFlag_UPDATE(TIM3);     //手动添加
-
-      LL_TIM_EnableIT_UPDATE(TIM3);     //手动添加
-
-      LL_TIM_EnableCounter(TIM3);       //手动添加
-
+      LL_TIM_EnableIT_UPDATE(TIM3);      //手动添加
+      LL_TIM_EnableCounter(TIM3);          //手动添加
 
      /* USER CODE END TIM3_Init 2 */
 
@@ -130,7 +134,7 @@ MCU: H503   (其他同系列mcu类似)
 
    volatile uint8_t flg_timer3 = 0;    //手动添加
 
-   void TimerUpdate_Callback(void)     //手动添加
+   void TimerUpdate_Callback(void)     //手动添加   //考虑在mx的project中自动添加 （LL库不能自动添加）
   {
        flg_timer3 = 1;
    }
@@ -147,7 +151,7 @@ MCU: H503   (其他同系列mcu类似)
        static uint32_t itimercount=0;
   
       
-       if(flg_timer3>=1)
+       if(flg_timer3==1)
        {
           flg_timer3=0;
           itimercount++;
