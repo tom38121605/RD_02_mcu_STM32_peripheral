@@ -1,0 +1,227 @@
+
+
+(待完成)
+
+MCU: C011F6   (其他mcu可通用)
+
+一. 在 LL库中添加 uart tx dma中断步骤：   
+
+1. 已建立uart简单的tx工程                          
+   。可printf发送字符串
+   。可iputs发送字符数组
+   //。发送完成后，触发uart的发送完成TC中断，小灯点亮
+ 
+
+
+2. 添加 uart tx dma  （ch0）
+    。在mx的选项卡connectivity中，选择USART1
+    。在dma settings中，点击add，在左边下拉框中选择“USART1_TX"
+
+    。Channel：      DMA1 Channel1      （默认）
+    。Priorty：        Low                       （默认）
+
+    。Mode：         Normal                                     （默认）
+    。Inc Addr：     Peripheral 不勾选    mem 勾选      （默认）
+    。data width：  Byte    Byte                                （默认）
+   
+
+3. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files                            //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。新加的DMA选择LL库
+
+4. 保存mx，点击generate code，生成kel工程， ok      （6个地方）
+
+
+
+二.  在keil 工程中， 自动添加代码   （7个地方）
+
+   1. 添加 两个文件:        // 2个地方
+       Src/gpdma.c 
+       Inc/gpdma.h
+
+
+   2. 在stm32h5xx_it.h中 添加
+
+      void DMA1_Channel1_IRQHandler(void);
+
+   2. 在stm32c0xx_it.c中 添加
+
+      void DMA1_Channel1_IRQHandler(void)
+      {
+        /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
+
+        /* USER CODE END DMA1_Channel1_IRQn 0 */
+
+        /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
+
+        /* USER CODE END DMA1_Channel1_IRQn 1 */
+      }
+
+
+    3. 在main.h中 添加
+      #include "stm32c0xx_ll_dma.h"
+
+    3. 在main.c中 添加
+       #include "dma.h"
+
+       MX_DMA_Init();
+
+
+    4. 在usart.c中，添加
+
+       void MX_USART1_UART_Init(void)
+       {
+
+         /* USER CODE BEGIN USART1_Init 0 */
+
+         /* USER CODE END USART1_Init 0 */
+
+         ......
+
+        /* USART1 DMA Init */
+
+        /* USART1_TX Init */
+        LL_DMA_SetPeriphRequest(DMA1, LL_DMA_CHANNEL_1, LL_DMAMUX_REQ_USART1_TX);
+
+        LL_DMA_SetDataTransferDirection(DMA1, LL_DMA_CHANNEL_1, LL_DMA_DIRECTION_MEMORY_TO_PERIPH);
+
+        LL_DMA_SetChannelPriorityLevel(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PRIORITY_LOW);
+
+        LL_DMA_SetMode(DMA1, LL_DMA_CHANNEL_1, LL_DMA_MODE_NORMAL);
+
+        LL_DMA_SetPeriphIncMode(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PERIPH_NOINCREMENT);
+
+        LL_DMA_SetMemoryIncMode(DMA1, LL_DMA_CHANNEL_1, LL_DMA_MEMORY_INCREMENT);
+
+        LL_DMA_SetPeriphSize(DMA1, LL_DMA_CHANNEL_1, LL_DMA_PDATAALIGN_BYTE);
+
+        LL_DMA_SetMemorySize(DMA1, LL_DMA_CHANNEL_1, LL_DMA_MDATAALIGN_BYTE);
+
+        /* USER CODE BEGIN USART1_Init 1 */
+
+        /* USER CODE END USART1_Init 1 */
+
+         ......
+ 
+     }
+
+
+
+
+
+//三.  在keil 工程中， 手动添加代码，   （待移植到C011）
+
+   1.  在main.h中， 添加
+
+       void LL_UART_Transmit_DMA( DMA_Channel_TypeDef *const dmainst, const uint8_t *pData, uint32_t Size);
+       void LL_DMA_Start_IT( DMA_Channel_TypeDef *const dmainst, uint32_t SrcAddress, uint32_t DstAddress, uint32_t SrcDataSize);
+
+
+   1. 在main.c中， 添加
+
+         #define TXBUFFERSIZE  6
+         uint8_t aTxBuffer[6+1] = "123456";	
+
+      void LL_UART_Transmit_DMA( DMA_Channel_TypeDef *const dmainst, const uint8_t *pData, uint32_t Size)
+      {  
+            //设置dma ch0的CCR,传输数据长度，源地址，目标地址
+             设置CFCR, 清0所有中断标志
+             使能dma ch0的完成中断,传输err中断，更新链接err中断，用户设置err中断，溢出中断
+             使能dma ch0的半完成中断
+             开启dma ch0
+         LL_DMA_Start_IT(dmainst, (uint32_t)pData, (uint32_t)&USART1->TDR, Size);        
+
+         //清0传输完成的中断标志      
+         SET_BIT(USART1->ICR, USART_ICR_TCCF);
+            //USART1->ICR |= 1<<6; 
+
+         //使能uart的dma的发送
+         SET_BIT(USART1->CR3, USART_CR3_DMAT);
+            //USART1->CR3=1<<7;       
+      }  
+
+      void LL_DMA_Start_IT( DMA_Channel_TypeDef *const dmainst, uint32_t SrcAddress, uint32_t DstAddress, uint32_t SrcDataSize)
+      {
+         //传输数据长度
+         MODIFY_REG(dmainst->CBR1, DMA_CBR1_BNDT, (TXBUFFERSIZE & DMA_CBR1_BNDT));
+           //GPDMA1_Channel0->CBR1 = 6;  
+
+         //设置通道1的源数据地址
+         WRITE_REG(dmainst->CSAR, (uint32_t)SrcAddress);
+           //GPDMA1_Channel0->CSAR = (uint32_t)aTxBuffer;     
+
+         //设置通道1的目标数据地址
+         WRITE_REG(dmainst->CDAR, (uint32_t)DstAddress);
+           //GPDMA1_Channel0->CDAR = (uint32_t)&USART1->TDR;               
+
+         //清0所有CFCR中的下列中断标志
+         SET_BIT(dmainst->CFCR, DMA_CSR_TCF | DMA_CSR_HTF | DMA_CSR_DTEF | DMA_CSR_ULEF | DMA_CSR_USEF | DMA_CSR_SUSPF | DMA_CSR_TOF);
+           //GPDMA1_Channel0->CFCR =  1<<8 |1<<9 | 1<<10 | 1<<11 | 1<<12 | 1<<13 | 1<<14;            
+                
+         //使能完成中断,传输err中断，更新链接err中断，用户设置err中断，溢出中断   
+         SET_BIT(dmainst->CCR, DMA_CCR_TCIE | DMA_CCR_DTEIE | DMA_CCR_ULEIE | DMA_CCR_USEIE | DMA_CCR_TOIE);
+            //GPDMA1_Channel0->CCR = 1<<8 | 1<<10 | 1<<11 | 1<<12 | 1<<14;                        
+
+         //使能半完成中断
+         SET_BIT(dmainst->CCR, DMA_CCR_HTIE);
+            //GPDMA1_Channel0->CCR  |=1<<9;                              
+
+         //开启 dma CH0
+         LL_DMA_EnableChannel(GPDMA1, LL_DMA_CHANNEL_0);   
+            //GPDMA1_Channel0->CCR  |=1<<0;   
+      }
+
+	
+   1. 在main.c中， 添加
+
+      main
+
+        ......
+
+  
+      while (1)
+      {
+  
+            LL_mDelay(500);     
+            LL_UART_Transmit_DMA(GPDMA1_Channel0, aTxBuffer, TXBUFFERSIZE);  
+      
+            LL_mDelay(500);         
+            LL_UART_Transmit_DMA(GPDMA1_Channel0, (uint8_t *)"123456", TXBUFFERSIZE);
+      
+      }
+  
+
+2. 在stm32h5xx_it.c中加入
+
+      void GPDMA1_Channel0_IRQHandler(void)
+      {        
+         //HT 
+        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<9))
+        {
+             GPDMA1_Channel0->CFCR = 1<<9;
+        }        
+        
+         //TC 
+        if(READ_BIT(GPDMA1_Channel0->CSR, 1<<8))
+        {        
+           GPDMA1_Channel0->CFCR = 1<<8 | 1<<9;
+        }
+
+     }
+
+
+
+
+
+
+
+
+
+
