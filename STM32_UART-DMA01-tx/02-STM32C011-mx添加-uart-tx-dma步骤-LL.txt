@@ -7,11 +7,7 @@ MCU: C011F6   (其他mcu可通用)
 一. 在 LL库中添加 uart tx dma中断步骤：   
 
 1. 已建立uart简单的tx工程                          
-   。可printf发送字符串
-   。可iputs发送字符数组
-   //。发送完成后，触发uart的发送完成TC中断，小灯点亮
- 
-
+   。可iputs发送字符数组 
 
 2. 添加 uart tx dma  （ch0）
     。在mx的选项卡connectivity中，选择USART1
