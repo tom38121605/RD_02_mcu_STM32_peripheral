@@ -1,0 +1,317 @@
+
+（已验证，ok）
+
+注意： uart打印log后，要加1ms - 10ms的延时  （以免跟adc撞车卡住）
+
+MCU: STM32C011   (其他mcu可通用)
+
+硬件修改：
+   。 无
+
+一. 在 LL库中添加多路adc步骤：  （？个地方）
+
+1. 建立工程     （4个地方）                            
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32C011F6U6
+   。点击start project
+   
+
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置adc，如下：    （?个地方）
+
+    。在引脚图上，把PA0设置为ADC1_IN0
+    。在引脚图上，把PA1设置为ADC1_IN1
+
+    。在Analog的ADC1中：  勾选 IN0， IN1（一般上面一步选引脚后会自动勾选）
+
+    下面默认
+    。Clock prescaler： Synch clock mode divided by 2
+    。Resolution:  ADC 12-bit 
+    。Data Alignment:  Right
+    。End of conversion selection:  End of single conversion
+
+    。External Trigger convertion source；  Regular convertion lauched by software
+
+   --- 多通道adc选项 ---
+    。Number of conversion：  2
+    。Scan conersion mode    Enabled
+
+   下面会同时显示出两个Rank，点开Rank下面还会显示出Channel选项
+    。 Rank              1
+        Channel         Channel0
+
+    。 Rank              2
+        Channel         Channel1
+
+    //gpio 设置 （默认）
+    。GPIO mode：           altemate Function open drain  (默认)
+    。把PA0设置为 No Pull     (默认)
+    。user lable：            ADC0， ADC1
+    
+    。ADC1 interrupt：  不勾选      
+
+    。其他： 默认      
+
+
+5. 设置project，如下：  （6个地方）
+
+    。设置工程目录： 原有的不变
+    。设置工程名称： 原有的不变
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。新加的ADC1选择LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中，自动添加代码
+
+   1.  增加了下面4个文件
+       Core\Src\adc.c
+       Core\Inc\adc.h
+       Drivers\STM32C0xx_HAL_Driver\Src\stm32c0xx_ll_adc.c
+       Drivers\STM32C0xx_HAL_Driver\Inc\stm32c0xx_ll_adc.h
+
+
+    。---main.h 中---
+
+         #include "stm32c0xx_ll_adc.h"
+
+         #define ADC0_Pin LL_GPIO_PIN_0
+         #define ADC0_GPIO_Port GPIOA
+         #define ADC1_Pin LL_GPIO_PIN_1
+         #define ADC1_GPIO_Port GPIOA
+
+
+    。---main.c 中---
+
+         #include "adc.h"
+
+         main
+            MX_ADC1_Init();
+
+
+
+三.  在keil 工程中，手动添加代码 
+
+
+    。---main.h 中---
+
+         void ADC_Activate(void);
+
+         void ConversionStartPoll_ADC_GrpRegular(void);
+
+         //uint16_t getadcvalue(void);
+
+
+    。---main.c 中---
+         void ADC_Activate(void)
+         {
+           __IO uint32_t wait_loop_index = 0U;
+           __IO uint32_t backup_setting_adc_dma_transfer = 0U;
+           #if (USE_TIMEOUT == 1)
+           uint32_t Timeout = 0U; /* Variable used for timeout management */
+           #endif /* USE_TIMEOUT */
+
+           if (LL_ADC_IsEnabled(ADC1) == 0)
+           {
+             /* Enable ADC internal voltage regulator */
+             LL_ADC_EnableInternalRegulator(ADC1);
+
+             wait_loop_index = ((LL_ADC_DELAY_INTERNAL_REGUL_STAB_US * (SystemCoreClock / (100000 * 2))) / 10);
+             while(wait_loop_index != 0)
+             {
+               wait_loop_index--;
+             }
+
+             backup_setting_adc_dma_transfer = LL_ADC_REG_GetDMATransfer(ADC1);
+             LL_ADC_REG_SetDMATransfer(ADC1, LL_ADC_REG_DMA_TRANSFER_NONE);
+
+             /* Run ADC self calibration */
+             LL_ADC_StartCalibration(ADC1);
+
+             /* Poll for ADC effectively calibrated */
+             #if (USE_TIMEOUT == 1)
+             Timeout = ADC_CALIBRATION_TIMEOUT_MS;
+             #endif /* USE_TIMEOUT */
+
+             while (LL_ADC_IsCalibrationOnGoing(ADC1) != 0)
+             {
+             #if (USE_TIMEOUT == 1)
+               /* Check Systick counter flag to decrement the time-out value */
+               if (LL_SYSTICK_IsActiveCounterFlag())
+               {
+                 if(Timeout-- == 0)
+                 {
+                   /* Error: Time-out */
+                   Error_Handler();
+                 }
+               }
+             #endif /* USE_TIMEOUT */
+             }
+
+             /* Restore ADC DMA transfer request after calibration */
+             LL_ADC_REG_SetDMATransfer(ADC1, backup_setting_adc_dma_transfer);
+
+             /* Delay between ADC end of calibration and ADC enable.                   */
+             /* Note: Variable divided by 2 to compensate partially                    */
+             /*       CPU processing cycles (depends on compilation optimization).     */
+             wait_loop_index = (ADC_DELAY_CALIB_ENABLE_CPU_CYCLES >> 1);
+             while(wait_loop_index != 0)
+             {
+               wait_loop_index--;
+             }
+
+             /* Enable ADC */
+             LL_ADC_Enable(ADC1);
+
+             /* Poll for ADC ready to convert */
+             #if (USE_TIMEOUT == 1)
+             Timeout = ADC_ENABLE_TIMEOUT_MS;
+             #endif /* USE_TIMEOUT */
+
+             while (LL_ADC_IsActiveFlag_ADRDY(ADC1) == 0)
+             {
+             #if (USE_TIMEOUT == 1)
+               /* Check Systick counter flag to decrement the time-out value */
+               if (LL_SYSTICK_IsActiveCounterFlag())
+               {
+                 if(Timeout-- == 0)
+                 {
+                   /* Error: Time-out */
+                   Error_Handler();
+                 }
+               }
+             #endif /* USE_TIMEOUT */
+             }
+
+           }
+         }
+
+         void ConversionStartPoll_ADC_GrpRegular(void)
+         {
+           #if (USE_TIMEOUT == 1)
+           uint32_t Timeout = 0U; /* Variable used for timeout management */
+           #endif /* USE_TIMEOUT */
+
+           if ((LL_ADC_IsEnabled(ADC1) == 1)               &&
+               (LL_ADC_IsDisableOngoing(ADC1) == 0)        &&
+               (LL_ADC_REG_IsConversionOngoing(ADC1) == 0)   )
+           {
+             LL_ADC_REG_StartConversion(ADC1);
+           }
+           else
+           {
+             /* Error: ADC conversion start could not be performed */
+             Error_Handler();
+           }
+
+           #if (USE_TIMEOUT == 1)
+           Timeout = ADC_UNITARY_CONVERSION_TIMEOUT_MS;
+           #endif /* USE_TIMEOUT */
+
+           while (LL_ADC_IsActiveFlag_EOC(ADC1) == 0)
+           {
+           #if (USE_TIMEOUT == 1)
+             /* Check Systick counter flag to decrement the time-out value */
+             if (LL_SYSTICK_IsActiveCounterFlag())
+             {
+               if(Timeout-- == 0)
+               {
+                 Error_Handler();
+               }
+             }
+           #endif /* USE_TIMEOUT */
+           }
+
+           LL_ADC_ClearFlag_EOC(ADC1);
+
+         }
+
+         uint16_t getadcvalue(void)
+         {
+             uint16_t iadcdata =0;
+             uint16_t iadcvol =0;
+            
+             ConversionStartPoll_ADC_GrpRegular();
+             iadcdata = LL_ADC_REG_ReadConversionData32(ADC1);
+             //iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcdata, LL_ADC_RESOLUTION_12B);
+             iadcvol =  (uint16_t)(iadcdata * 3300 /4096);   
+
+             char strtemp[30];
+             sprintf(strtemp,"adcn: %d %d  \r\n",iadcdata,iadcvol  );
+             uartsendstr((uint8_t*)strtemp);
+             
+             return  iadcvol;
+             
+         }  
+
+
+    。---main.c 中---
+
+     main(void)
+ 
+
+     ADC_Activate();   
+    
+ 
+     while (1)
+     {
+     
+       LL_mDelay(1000);
+       
+       
+       //read adc
+        char str1[30];
+           
+       
+       LL_ADC_REG_StartConversion(ADC1);
+       for(int i=0; i<5; i++)
+       {
+          while(LL_ADC_IsActiveFlag_EOC(ADC1) == 0);  
+          iadcvalue[i] = LL_ADC_REG_ReadConversionData32(ADC1);
+          LL_ADC_ClearFlag_EOC(ADC1);  
+       }    
+       
+                                                  
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[0], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc0: %d %d  \r\n",iadcvalue[0],iadcvol );
+       iputs1(str1);
+                                                         
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[1], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc1: %d %d  \r\n",iadcvalue[1],iadcvol );
+       iputs1(str1);
+                                                      
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[2], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc2: %d %d  \r\n",iadcvalue[2],iadcvol );
+       iputs1(str1); 
+                                                           
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[3], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc3: %d %d  \r\n",iadcvalue[3],iadcvol );
+       iputs1(str1); 
+                                                         
+       iadcvol = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[4], LL_ADC_RESOLUTION_12B);
+       sprintf(str1,"adc4: %d %d  \r\n",iadcvalue[4],iadcvol );
+       iputs1(str1);
+       
+       iputs1("\r\n");   
+    
+
+
+
+三。测试：
+
+     1. 把PA0连VCC（3.3V）， 串口打印出： adcn： 4095 3299
+     2. 把PA0连GND（0V），  串口打印出： adcn： 0       0
+
+
+
+
+
+
