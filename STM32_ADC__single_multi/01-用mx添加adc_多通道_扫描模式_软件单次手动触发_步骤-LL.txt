@@ -1,6 +1,7 @@
 
 （已验证，ok）
 
+注意： uart打印log后，要加1ms - 10ms的延时  （以免跟adc撞车卡住）
 
 MCU: STM32C011   (其他mcu可通用)
 
