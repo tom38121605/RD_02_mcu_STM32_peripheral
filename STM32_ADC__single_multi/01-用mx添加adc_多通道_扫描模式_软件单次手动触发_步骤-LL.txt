@@ -1,5 +1,5 @@
 
-（已验证，ok）
+（待在新程序中验证？）
 
 注意： uart打印log后，要加1ms - 10ms的延时  （以免跟adc撞车卡住）
 
@@ -102,9 +102,25 @@ MCU: STM32C011   (其他mcu可通用)
 
     。---main.h 中---
 
+         #include <stdio.h>
+
          void ADC_Activate(void);
          void ConversionStartPoll_ADC_GrpRegular(void);
          void getadcvalue(void);
+
+
+         #define ADC_CALIBRATION_TIMEOUT_MS       (   1UL)
+         #define ADC_ENABLE_TIMEOUT_MS            (   1UL)
+         #define ADC_DISABLE_TIMEOUT_MS           (   1UL)
+         #define ADC_STOP_CONVERSION_TIMEOUT_MS   (   1UL)
+         #define ADC_CONVERSION_TIMEOUT_MS        (4000UL)
+
+         #define ADC_DELAY_CALIB_ENABLE_CPU_CYCLES  (LL_ADC_DELAY_CALIB_ENABLE_ADC_CYCLES * 32)
+
+         #define VDDA_APPLI                       (3300UL)  
+  
+         __IO uint16_t iadcvalue[5] = {0};  
+         __IO uint16_t iadcvol[5] = {0};  
 
 
     。---main.c 中---
@@ -195,6 +211,7 @@ MCU: STM32C011   (其他mcu可通用)
 
 
             while
+                  char str1[30];
 
                   getadcvalue();     
 
