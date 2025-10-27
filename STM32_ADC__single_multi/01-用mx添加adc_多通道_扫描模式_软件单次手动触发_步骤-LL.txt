@@ -1,5 +1,5 @@
 
-（待在新程序中验证？）
+（已验证 -- ok ）
 
 注意： uart打印log后，要加1ms - 10ms的延时  （以免跟adc撞车卡住）
 
@@ -192,13 +192,13 @@ MCU: STM32C011   (其他mcu可通用)
          void getadcvalue(void)
          {      
             LL_ADC_REG_StartConversion(ADC1);
-            for(int i=0; i<5; i++)
+            for(int i=0; i<2; i++)
             {
                 while(LL_ADC_IsActiveFlag_EOC(ADC1) == 0);  
                 iadcvalue[i] = LL_ADC_REG_ReadConversionData32(ADC1);       
                 LL_ADC_ClearFlag_EOC(ADC1);  
             }
-            for(int i=0; i<5; i++)  
+            for(int i=0; i<2; i++)  
                iadcvol[i] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[i], LL_ADC_RESOLUTION_12B);
          }
 
@@ -215,7 +215,7 @@ MCU: STM32C011   (其他mcu可通用)
 
                   getadcvalue();     
 
-                  for(int i=0; i<5; i++)
+                  for(int i=0; i<2; i++)
                   {   
                      sprintf(str1,"adc%d: %d %d  \r\n",i, iadcvalue[i], iadcvol[i] ); 
                      iputs1(str1);   
@@ -232,11 +232,17 @@ MCU: STM32C011   (其他mcu可通用)
 
 三。测试：
 
-     1. 把PA0连VCC（3.3V）， 串口打印出： adcn： 4095 3299
-     2. 把PA0连GND（0V），  串口打印出： adcn： 0       0
+     1. 把PA0，PA1连VCC（3.3V）， 串口打印出： adcn： 4095 3299
+     2. 把PA0，PA1连GND（0V），  串口打印出： adcn： 0       0
 
 
 
-
-
+调试问题1.  程序运行到getadcvalue，卡住
+解决：       把移植的5路adc，改成现在的2路adc。即 修改为i<2
+            for(int i=0; i<2; i++)
+            {
+                while(LL_ADC_IsActiveFlag_EOC(ADC1) == 0);  
+                iadcvalue[i] = LL_ADC_REG_ReadConversionData32(ADC1);       
+                LL_ADC_ClearFlag_EOC(ADC1);  
+            }
 
