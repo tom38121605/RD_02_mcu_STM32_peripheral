@@ -21,7 +21,7 @@ MCU: F030CCT6   (其他mcu可通用)
     。Prescaler：  479                          //100khz  = 48M / 480
     。Couter Period：  99                    //1khz    =  100k / 100    （pwm的时钟）
     。Auto-reload preload: enable
-    。pulse:   30
+    。pulse:   30                                 //ch1  （tim3可同时多个引脚输出pwm，各引脚设置不同的占空比）
 
     。把PA6设置为 pull down
 
