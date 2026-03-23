@@ -1,43 +1,7 @@
 
+参考： 00-DUI0553-Cortex-M4 Devices Generic UserGuide.pdf   P249页
 
 
-
-
-//注意 nms 的范围
-//nms<=0xffff*8*1000/SYSCLK
-void LL_mDelay(uint32_t Delay)
-{
-   uint32_t temp;   
-   SysTick->LOAD=(uint32_t)Delay*(SystemCoreClock/1000/8); 
-   SysTick->VAL =0x00;            
-   SysTick->CTRL=0x01 ;          
-   
-   do
-   {
-      temp=SysTick->CTRL;
-   }
-   while((temp&0x01)&&!(temp&(1<<16))); 
-   
-   SysTick->CTRL=0x00;         
-   SysTick->VAL =0X00;           
-}
-
-void LL_uDelay(uint32_t Delay)
-{
-   uint32_t temp;   
-   SysTick->LOAD=(uint32_t)Delay*(SystemCoreClock/1000000/8); 
-   SysTick->VAL =0x00;            
-   SysTick->CTRL=0x01 ;          
-   
-   do
-   {
-      temp=SysTick->CTRL;
-   }
-   while((temp&0x01)&&!(temp&(1<<16))); 
-   
-   SysTick->CTRL=0x00;         
-   SysTick->VAL =0X00;           
-}
 
 
 =======================systick 延时1ms===推导过程=======================
@@ -85,9 +49,82 @@ LL_mDelay( Delay)
     
      while (tmpDelay  != 0)
    
-            if ((SysTick->CTRL &  SysTick_CTRL_COUNTFLAG_Msk) != 0)             
+            if ((SysTick->CTRL &  SysTick_CTRL_COUNTFLAG_Msk) != 0)    //CTRL.16=1, 计数到0触发中断  //参考： 00-DUI0553-Cortex-M4 Devices Generic UserGuide.pdf P249页   
                   tmpDelay --;
 
+
+
+
+=======================systick 延时1us===函数=======================
+
+//时钟频率为48M
+void delay_us(uint16_t us)
+{
+    uint32_t ticks;
+    uint32_t told, tnow, tcnt = 0;
+    uint32_t reload = SysTick->LOAD;   
+    
+ 
+    ticks = us * (48000000 / 1000000);  
+    told = SysTick->VAL;  
+    
+    while (1)
+    {
+        tnow = SysTick->VAL;
+        if (tnow != told)
+        {
+ 
+            if (tnow < told) tcnt += told - tnow;
+            else tcnt += reload - tnow + told;
+            
+            told = tnow;
+ 
+            if (tcnt >= ticks) break;
+        }
+    }
+}
+
+
+
+
+==========================参考======================================
+
+
+//注意 nms 的范围
+//nms<=0xffff*8*1000/SYSCLK
+void LL_mDelay(uint32_t Delay)
+{
+   uint32_t temp;   
+   SysTick->LOAD=(uint32_t)Delay*(SystemCoreClock/1000/8); 
+   SysTick->VAL =0x00;            
+   SysTick->CTRL=0x01 ;          
+   
+   do
+   {
+      temp=SysTick->CTRL;
+   }
+   while((temp&0x01)&&!(temp&(1<<16))); 
+   
+   SysTick->CTRL=0x00;         
+   SysTick->VAL =0X00;           
+}
+
+void LL_uDelay(uint32_t Delay)
+{
+   uint32_t temp;   
+   SysTick->LOAD=(uint32_t)Delay*(SystemCoreClock/1000000/8); 
+   SysTick->VAL =0x00;            
+   SysTick->CTRL=0x01 ;          
+   
+   do
+   {
+      temp=SysTick->CTRL;
+   }
+   while((temp&0x01)&&!(temp&(1<<16))); 
+   
+   SysTick->CTRL=0x00;         
+   SysTick->VAL =0X00;           
+}
 
 
 
