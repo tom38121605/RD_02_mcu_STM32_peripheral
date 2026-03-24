@@ -1,0 +1,34 @@
+
+1.  在mx中设置m16为1us 
+
+      。时钟48MHz
+      。TIM16配置为：
+          勾选activated
+          PSC=47 
+          自动重装载值=0xFFFF
+          自动装载enable
+      。TIM16选择LL库
+      。保存mx，点击generate code，生成kel工程， ok
+
+
+2. 在main.c 中添加：
+
+      void delay_us_tim(uint16_t us) 
+      {
+          LL_TIM_SetCounter(TIM16, 0);   // 清零计数器
+          LL_TIM_EnableCounter(TIM16);   // 启动计数
+          while(LL_TIM_GetCounter(TIM16) < us); // 轮询直到计数值达到us
+          LL_TIM_DisableCounter(TIM16);  // 停止计数
+      }
+
+
+3. 在main.h中添加：
+
+      void delay_us_tim(uint16_t us) ;
+
+
+
+
+
+
+
