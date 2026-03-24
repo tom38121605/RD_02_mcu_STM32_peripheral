@@ -1,7 +1,7 @@
 
      // 在mx中，TIM16配置为：时钟48MHz，PSC=47，自动重装载值=0xFFFF（自动装载enable），计数频率=1MHz（1us/计数）
 
-      void delay_us_tim16(uint16_t us)
+      void delay_us_tim(uint16_t us)
       {
           LL_TIM_SetCounter(TIM16, 0);   // 清零计数器
           LL_TIM_EnableCounter(TIM16);   // 启动计数
