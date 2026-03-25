@@ -13,6 +13,14 @@
 
 2. 在main.c 中添加：
 
+      //       delay_us_tim(1);        // 1.4us
+      //       delay_us_tim(2);        // 2.4us
+      //       delay_us_tim(5);        // 5,4us
+      //       delay_us_tim(10);       // 10.6us 
+      //       delay_us_tim(20);       // 20.4us
+      //       delay_us_tim(50);       // 50.5us
+      //       delay_us_tim(100);      // 101.0us 
+
       void delay_us_tim(uint16_t us) 
       {
           LL_TIM_SetCounter(TIM16, 0);   // 清零计数器
