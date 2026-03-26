@@ -1,0 +1,67 @@
+
+1.  Scan 模式 和 Continuous 模式的区别
+
+    Scan 模式 = 一次扫多个通道（1 个通道 / 多个通道）
+
+    Continuous 模式 = 一直不停转换（单次 / 连续）
+
+    两个完全管不同事情，可以独立开关，也可以组合。
+
+
+2. Discontinuous模式的作用
+ 
+   Discontinuous模式 只用在对scan模式的限制  （跟 Continuous模式没有关系）
+
+       
+
+1：Scan = 开，Discontinuous = 关
+
+            触发 1 次 → CH0 → CH1 → CH2 全部转完 
+
+       2：Scan = 开，Discontinuous = 开
+             
+触发 1 次 → CH0 停
+
+             触发 1 次 → CH1 停
+
+            触发 1 次 → CH2 停
+
+            分 3 次才完成一轮扫描
+
+
+3. adc的时钟选择
+    STM32C011 有独立的 ADC Clock Mux，可以选 SYSCLK 或 HSIKER，然后再分频给 ADC  （这里选 SYSCLK）
+
+
+4. 计算adc的扫描频率：
+
+      ADC 时钟：24 MHz
+      采样时间：79.5 cycles
+      12 位固定转换周期：12.5 cycles（来自 RM0490 手册，不是我编的）
+
+      单次转换总周期数Ttotal =79.5+12.5=92 cycles
+
+      单次转换时间Tconv =92/24×106 ≈3.833 μs
+
+      采样频率fs =1/Tconv =24×106 /92≈260.87 kHz
+
+
+5. 计算adc的最大扫描频率：  （2.5Mhz）
+
+      ADC 时钟：35 MHz
+      采样时间：1.5 cycles
+      12 位固定转换周期：12.5 cycles（来自 RM0490 手册，不是我编的）
+
+      单次转换总周期数Ttotal =1.5+12.5=14 cycles
+
+      单次转换时间Tconv =14/35×106 = 0.4 μs
+
+      采样频率fs =1/Tconv =35×106 /14 = 2.5Mhz
+
+
+
+
+
+
+
+
