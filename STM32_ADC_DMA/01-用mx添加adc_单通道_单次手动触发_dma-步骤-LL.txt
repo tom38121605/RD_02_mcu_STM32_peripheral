@@ -32,7 +32,7 @@ MCU: STM32C011   (其他mcu可基本通用)
     。Number of Convertion:   1
     。External Trigger convertion source；  Regular convertion lauched by software
 
-    。GPIO mode：           altemate Function open drain  (默认)
+    。GPIO mode：           Anolog mode   (默认)
     。把PA0设置为 No Pull 
     。user lable：            ADC0
     

@@ -46,7 +46,7 @@ MCU: STM32C011   (其他mcu可通用)
         Channel         Channel1
 
     //gpio 设置 （默认）
-    。GPIO mode：           altemate Function open drain  (默认)
+    。GPIO mode：          Anolog mode   (默认)
     。把PA0设置为 No Pull     (默认)
     。user lable：            ADC0， ADC1
     

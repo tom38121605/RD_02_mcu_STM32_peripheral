@@ -30,7 +30,7 @@ MCU: STM32C011   (其他mcu可通用)
     。Number of Convertion:   1
     。External Trigger convertion source；  Regular convertion lauched by software
 
-    。GPIO mode：           altemate Function open drain  (默认)
+    。GPIO mode：           Anolog mode  (默认)
     。把PA0设置为 No Pull 
     。user lable：            ADC0
     
@@ -55,7 +55,7 @@ MCU: STM32C011   (其他mcu可通用)
 6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
 
 
-二.  在keil 工程中，导入下面2个文件
+二.  在keil 工程中，导入下面2个文件  （自动）
 
    1.   Core\Src\adc.c
    2.   Drivers\STM32C0xx_HAL_Driver\Src\stm32c0xx_ll_adc.c
@@ -73,6 +73,20 @@ MCU: STM32C011   (其他mcu可通用)
 
 
     。---main.c 中---
+
+         #define ADC_CALIBRATION_TIMEOUT_MS       (   1UL)
+         #define ADC_ENABLE_TIMEOUT_MS            (   1UL)
+         #define ADC_DISABLE_TIMEOUT_MS           (   1UL)
+         #define ADC_STOP_CONVERSION_TIMEOUT_MS   (   1UL)
+         #define ADC_CONVERSION_TIMEOUT_MS        (4000UL)
+
+         #define ADC_DELAY_CALIB_ENABLE_CPU_CYCLES  (LL_ADC_DELAY_CALIB_ENABLE_ADC_CYCLES * 32)
+         #define VDDA_APPLI                       (3300UL)
+
+         //__IO uint16_t iadcvalue[5] = {0};  
+         //__IO uint16_t iadcvol[5] = {0};  
+
+
          void ADC_Activate(void)
          {
            __IO uint32_t wait_loop_index = 0U;
