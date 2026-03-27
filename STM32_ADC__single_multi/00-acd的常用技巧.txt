@@ -61,12 +61,20 @@
 
 6. CFGR1.21:   CHSELRMOD  (相关寄存器 CHSELR)
 
-   只有在 Scan 模式下，CHSELRMOD 才有实际意义：
+   。只有在 Scan 模式下，CHSELRMOD 才有实际意义：
 
-   0)：按通道号顺序扫描采样， 可所有通道 
-   1)：可以自定义扫描顺序采样，但最多8个通道
+       0)：按通道号顺序扫描采样， 可所有通道 
+       1)：可以自定义扫描顺序采样，但最多8个通道
 
+   。在mx中，如何设置CHSELRMOD为1：
 
+         . 打开 ADC 配置 → Parameter Settings → ADC_Regular_ConversionMode
+         . Number Of Conversion：设置为你需要的通道数量（最多 8 个）
+         . 展开 Rank 列表，手动为每个 Rank 分配通道：
+            . 点击 Rank 1 → 选择你要第一个转换的通道（比如 IN2）
+            . 点击 Rank 2 → 选择第二个转换的通道（比如 IN0）
+            . 以此类推，直到分配完所有通道
+        .  此时 CubeMX 会自动将 CHSELRMOD 设为 1，并生成对应的序列模式代码
 
 
 
