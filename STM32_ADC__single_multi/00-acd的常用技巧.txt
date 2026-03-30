@@ -61,7 +61,7 @@
 
 6. CFGR1.21:   CHSELRMOD  (相关寄存器 CHSELR)
 
-   。只有在 Scan 模式下，CHSELRMOD 才有实际意义：
+   。在 Scan 模式下，更能体现出CHSELRMOD 的实际意义：
 
        0)：按通道号顺序扫描采样， 可所有通道 
        1)：可以自定义扫描顺序采样，但最多8个通道
@@ -75,6 +75,20 @@
             . 点击 Rank 2 → 选择第二个转换的通道（比如 IN0）
             . 以此类推，直到分配完所有通道
         .  此时 CubeMX 会自动将 CHSELRMOD 设为 1，并生成对应的序列模式代码
+
+
+        ------------ CHSELRMOD=1 在单次触发模式和扫描模式都有用 -----------
+
+        。在 STM32C011 里，只要你用了 LL 库的 LL_ADC_REG_SetSequencerRanks()， Rank 配置 → CHSELRMOD=1
+
+
+        。只要CHSELRMOD=1
+，永远是序列格式（把各通道号填入到rank1 - rank8）
+            Scan OFF → 只转 Rank1
+
+            Scan ON → 转 Rank1、Rank2… 直到 F
+
+
 
 
 
