@@ -88,6 +88,8 @@
 
             Scan ON → 转 Rank1、Rank2… 直到 F
 
+   。在mx中，设置enable扫描模式后，Number Of Conversion设置的数量要大于等于2； 如果设置为1，会自动desable扫描模式：
+
 
 7. adc什么时候需要开低频模式（CFGR2.29 = 1）， 低频模式的作用
 
