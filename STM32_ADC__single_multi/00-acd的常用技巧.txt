@@ -109,7 +109,22 @@
           不做额外初始化，直接转，更快。
 
 
+8. adc单次模式和扫描模式的区别
 
+   。单次模式和扫描模式，都要设置CHSELRMOD = 1
+   。单次模式一定要把rank2设置为f（在mx中体现就是把通道数量Number of conversion设为1），
+      扫描模式一定要在rank2之后的通道中设置f （如果8个通道都用可不设置f）
+   。简单理解： 在mx中，把通道数量Number of conversion设为1就是单次模式，设为2-8就是扫描模式
+
+9.  寄存器CFGR1中的SCANDIR的作用
+
+      Bit 2 SCANDIR: Scan sequence direction
+      This bit ... is effective only if CHSELMOD bit is cleared.
+      0: Upward scan (from CHSEL0 to CHSEL22)
+      1: Backward scan (from CHSEL22 to CHSEL0)
+
+   CHSELMOD = 0（位掩码模式），SCANDIR 才有效，可以控制扫描方向是从通道 0→22，还是 22→0。
+   CHSELMOD = 1（序列模式）：SCANDIR 完全无效，顺序由你在 CHSELR 里定义的 Rank1→Rank8 决定，和这个位没有关系
 
 
 
