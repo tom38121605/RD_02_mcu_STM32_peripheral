@@ -6,6 +6,7 @@
           勾选activated
           PSC=47 
           自动重装载值=0xFFFF
+          counter mode：  up  （默认值）
           自动装载enable
       。TIM16选择LL库
       。保存mx，点击generate code，生成kel工程， ok
