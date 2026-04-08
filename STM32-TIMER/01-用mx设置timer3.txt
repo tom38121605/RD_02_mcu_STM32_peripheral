@@ -29,7 +29,7 @@ MCU: H503   (其他同系列mcu类似)
 1. 建立工程     （4个地方）
    。双击打开mx
    。选择 start my project from mcu
-   。输入mcu型号： STM32F030CCT6
+   。输入mcu型号： STM32H503
    。点击start project
 
 2. 设置时钟为HSI的250M     （1个地方）
