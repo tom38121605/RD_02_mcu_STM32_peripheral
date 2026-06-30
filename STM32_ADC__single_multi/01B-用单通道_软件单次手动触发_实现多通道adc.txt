@@ -1,0 +1,53 @@
+
+1. mx设置 参考：      “01-00-用mx添加adc_单通道_软件单次手动触发_步骤-LL.txt”
+
+2. 通过切换通道实现多通道adc
+
+      void getadcvalue(uint8_t i)
+      {
+         switch (i)
+         {
+            case 0:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_0);     //切换adc通道
+               break;
+               
+            case  1:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_1);  
+               break;
+               
+            case  2:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_2);  
+               break;
+               
+            case  3:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_3);  
+               break;
+               
+            case  4:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_4);  
+               break;
+               
+            case  5:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_5);  
+               break;
+               
+            case  6:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_6);  
+               break;
+
+            case  7:
+               LL_ADC_REG_SetSequencerRanks(ADC1, LL_ADC_REG_RANK_1, LL_ADC_CHANNEL_7);  
+               break;
+               
+            default:
+               break;
+         }       
+         
+         ConversionStartPoll_ADC_GrpRegular();      //触发新的adc转换
+         
+         iadcvalue[i] = LL_ADC_REG_ReadConversionData32(ADC1);        //读取adc值                                            
+         iadcvol[i] = __LL_ADC_CALC_DATA_TO_VOLTAGE(VDDA_APPLI, iadcvalue[i], LL_ADC_RESOLUTION_12B);   //把adc值换算成电压值
+      }      
+
+
+
