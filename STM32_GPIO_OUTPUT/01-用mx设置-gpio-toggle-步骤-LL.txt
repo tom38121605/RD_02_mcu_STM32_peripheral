@@ -11,13 +11,11 @@ MCU: STM32C011   (其他mcu可通用)
    。输入mcu型号： STM32C011F6U6
    。点击start project
    。如果提示下载sdk库，则需要输入www.st.com的用户和密码
-        zhao.chunrong@global-silicon.com   （999999 8888 ~C  ）
-
+        zhao.chunrong@global-silicon.com   （9~ 8888 ~C  ）
    
 2. 设置时钟为HSI的48M     （1个地方）        
    。点击左边的System core\ RCC 
    。在这里选择是否用外部HSE和LSE
-
 
 3. 设置GPIO OUTPUT，如下：    
 
