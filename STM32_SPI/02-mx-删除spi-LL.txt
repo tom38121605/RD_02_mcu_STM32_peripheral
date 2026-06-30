@@ -32,7 +32,7 @@ MCU: F030CCT6   (其他mcu可通用)
 
       #define ICM42605_DEVICE_CONFIG_REG           0x11    
       
-#define ICM42605_INT_CONFIG_REG                0x14 
+      #define ICM42605_INT_CONFIG_REG                0x14 
 
       uint8_t icm0_read_byte(uint8_t addr);			
       void icm0_write_byte(uint8_t addr,  uint8_t value);			
@@ -60,7 +60,6 @@ MCU: F030CCT6   (其他mcu可通用)
 
    uint8_t SPI_transfer(uint8_t data);
        ......
-
 
 
  3.  文件  main.c， 删除常数定义和include

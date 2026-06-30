@@ -1,0 +1,267 @@
+
+待验证： 
+
+
+MCU: STM32C011   (其他mcu可通用)
+
+一. 在 LL库中添加spi步骤：   
+
+1. 建立工程                          
+   。双击打开mx
+   。选择 start my project from mcu
+   。输入mcu型号： STM32C011F6U6
+   。点击start project
+   
+2. 设置时钟为HSI的48M     （1个地方）         
+
+3. 设置 spi参数，如下：    
+
+    。在引脚图上，把PA4设置为CS
+    。在引脚图上，把PA5设置为SCK
+    。在引脚图上，把PA6设置为MI
+    。在引脚图上，把PA7设置为MO
+
+    。Frame Format：   Motorola   （默认）
+    。Datasize：           8               （默认）
+    。Firstbit：             MSB first    （默认）
+
+    。Prescaler：         4     (12M 波特率)
+    。CPOL:                  Low
+    。CPHA:                  1 Edge
+    
+    。SPI1 interrupt：  勾选          //似乎没有用到    
+
+
+4. 设置spi引脚
+
+    1).  sck：
+      。GPIO output level：     Low
+      。GPIO pull:                   No pull
+      。Max out speed:          Very high
+
+    2).  mi：
+      。GPIO output level：     Low
+      。GPIO pull:                   pull down
+      。Max out speed:          Very high
+
+    3).  mo：
+      。GPIO output level：     Low
+      。GPIO pull:                   No pull
+      。Max out speed:          Very high
+
+    4).  cs：
+      。GPIO output level：     High
+      。GPIO pull:                   output push  pull 
+      。Max out speed:          Very high
+
+5. 设置project，如下：  （6个地方）
+
+    。保存.ico文件： 菜单file\save project, 保存到  d:\test\c011base
+    。设置工程目录： d:\test\c011base  （如果保存了.ico文件，这个目录会自动出现）
+    。设置工程名称： c011base   （如果保存了.ico文件，这个名称会自动出现）
+    。设置IDE: MDK-ARM
+
+    。勾选 copy only the necessary library files    //原有的不变
+    。勾选 Generate peripheral initialiation as a pair of 'c/h"files   //原有的不变
+
+    。SPI选择LL库
+
+
+6. 保存mx，点击generate code，生成kel工程， ok      （1个地方）
+
+
+二.  在keil 工程中，修改工程设置
+
+  . 打开keil，修改相应的工程设置，如 勾选 reset and run
+  . 打开keil的工程设置，勾选microlib
+  . 打开keil的工程设置，编译优化选择Os
+
+
+
+三.  在keil 工程中， 添加代码       //待验证
+  
+
+   1. MX操作时自动删除
+
+      。spi.h
+      。spi.c
+      。stm32c0xx_ll_spi.h
+      。stm32c0xx_ll_spi.c
+
+   2. 手动添加
+      。mcp3561.h
+      。mcp3561.c
+
+
+       --------------mcp3561.h 里面有诸如下面的变量声明和函数定义----------------------
+
+      #define DUMMY_BYTE   0xFF
+      #define ADCDATALEN  3
+
+      #define CMD_READ_ADCDATA0    0x43 
+      #define CMD_WRITE_CONFIG0    0x46
+      #define CMD_READ_CONFIG0     0x47
+
+      #define FASTCMD_UNUSE          0x40
+      #define FASTCMD_ADCSTART       0x68
+      #define FASTCMD_ADCSHUTDOWN    0x70
+
+      extern uint8_t sconfigbuf[30];
+      extern uint8_t iadcdata[ADCDATALEN];
+
+      //mcp3561
+      void MCP3561_CS_LOW(void);
+      void MCP3561_CS_HIGH(void);
+      void mcp3561_write(uint8_t* pbuf, uint8_t icmd, uint8_t inum);
+      void mcp3561_read(uint8_t* pbuf, uint8_t icmd, uint8_t inum);
+      void mcp3561_init(void);
+      void mcp3561_adcstart(void);;
+      void mcp3561_adcshutdown(void);
+      uint8_t mcp3561_getstatus(void);
+
+
+       --------------mcp3561.c 里面有诸如下面的变量声明和函数定义----------------------
+
+      uint8_t sconfigbuf[30]={0};
+      uint8_t iadcdata[ADCDATALEN]={0};
+
+      const uint8_t mcp3561_config[25]=      
+      {       
+          0x82,  //CONFIG0 , internal 2.4v, external clk, standby, null
+          0x0C,  //CONFIG1 ,  prescaler 1x, OSR 256 
+          0xA3,  //CONFIG2,    //gain 8x，BOOST 1x，enable chop
+          0x83,  //CONFIG3, One-shot, (24bit)
+          0x72,  //IRQ, pin output IRQ  , Hi-Z no startadc irq     
+          0x01,              //MUX , CH0(v+),CH1 (v-)          
+          0xE0,0x00,0x00,    //SCAN  512 dmclk, scan none    
+          0x00,0x00,0x00,    //TIMER       
+          0x00,0x00,0x00,    //OFFSETCAL        
+          0x80,0x00,0x00,     //GAINCAL         
+          0x90,0x00,0x00,     //RESERVED    
+          0x30,                 //RESERVED    
+          0xA5,                 //LOCK
+          0x00,0x0C,           //RESERVED    
+      };  
+
+      //---------------------mcp3561 module---------------------------
+       
+      void MCP3561_CS_LOW(void)
+      {
+         LL_GPIO_ResetOutputPin(SPI1_CS_GPIO_Port, SPI1_CS_Pin);
+      }
+
+      void MCP3561_CS_HIGH(void)
+      {
+         LL_GPIO_SetOutputPin(SPI1_CS_GPIO_Port, SPI1_CS_Pin);
+      }
+       
+      void mcp3561_write(uint8_t* pbuf, uint8_t icmd, uint8_t inum)
+      {         
+         MCP3561_CS_LOW();         
+         SPI_transfer(icmd);
+         while (inum--)
+         {
+            SPI_transfer(*pbuf);
+            pbuf++;
+         }
+         MCP3561_CS_HIGH(); 
+      }
+
+      void mcp3561_read(uint8_t* pbuf, uint8_t icmd, uint8_t inum)
+      {	
+         MCP3561_CS_LOW();
+         SPI_transfer(icmd);
+         while (inum--)
+         {
+            *pbuf = SPI_transfer(DUMMY_BYTE);   //0xFF
+            pbuf++;
+         }         
+         MCP3561_CS_HIGH(); 
+      }
+
+      void mcp3561_init(void)
+      { 
+         //set mcp3561 config
+         mcp3561_write( (uint8_t*)mcp3561_config ,CMD_WRITE_CONFIG0,12);            
+       } 
+
+      void mcp3561_adcstart(void)
+      {       
+         MCP3561_CS_LOW();
+         SPI_transfer(FASTCMD_ADCSTART);    //start adc           
+         MCP3561_CS_HIGH();        
+      } 
+
+      void mcp3561_adcshutdown(void)
+      {       
+         MCP3561_CS_LOW();
+         SPI_transfer(FASTCMD_ADCSHUTDOWN);    //shutdown adc           
+         MCP3561_CS_HIGH();        
+      } 
+
+      uint8_t mcp3561_getstatus(void)
+      {
+         uint8_t istatus=0;         
+         MCP3561_CS_LOW();
+         istatus=SPI_transfer(FASTCMD_UNUSE);   // UNUSE cmd            
+         MCP3561_CS_HIGH(); 
+         return istatus;
+      }
+
+
+      //---------------------mcp3561 module----end----------------------
+
+
+
+ 三.  在keil 工程中， 添加代码，        //待验证
+
+1. 文件  main.h, 添加函数声明
+
+    #define MMC_SPI SPI1
+
+    uint8_t SPI_transfer(uint8_t data);
+ 
+
+2.  文件  main.c， 添加函数体
+
+ 
+   uint8_t SPI_transfer(uint8_t data);
+       ......
+
+
+ 3.  文件  main.c， 删除常数定义和include
+
+     #include "spi.h"
+     #include "mcp3561.h"
+ 
+
+ 4.  文件  main.c， 删除代码调用运行
+
+ 
+main()
+
+         ......
+
+         LL_SPI_Enable(SPI1);     
+          
+         //adc sensor init 
+         mcp3561_init();
+         LL_mDelay(10);   
+         mcp3561_read(sconfigbuf,CMD_READ_CONFIG0, 27);        //read configs  
+         uartsendcmd((uint8_t *)sconfigbuf,27); 
+
+
+   while(1)
+
+         ......
+
+         mcp3561_read(iadcdata,CMD_READ_ADCDATA0,ADCDATALEN);    //read adc data  (data0 is high byte)  
+         isensorval = (int32_t)( (iadcdata[0] << 16) + (iadcdata[1] << 8) + iadcdata[2]);
+         
+         uint8_t ihead=0xaa;   
+         iputbytes1((uint8_t *)&ihead,1);    
+         iputbytes1((uint8_t *)iadcdata,ADCDATALEN);   
+
+
+
+
