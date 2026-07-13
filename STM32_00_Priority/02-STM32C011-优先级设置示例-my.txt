@@ -1,0 +1,296 @@
+﻿
+
+----------------------------- LL库里面的中断优先级函数的定义 -----------------------------
+
+
+__STATIC_INLINE void __NVIC_SetPriority(IRQn_Type IRQn, uint32_t priority)
+{
+  if ((int32_t)(IRQn) >= 0)
+  {
+    NVIC->IP[_IP_IDX(IRQn)]  = ((uint32_t)(NVIC->IP[_IP_IDX(IRQn)]  & ~(0xFFUL << _BIT_SHIFT(IRQn))) |
+       (((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL) << _BIT_SHIFT(IRQn)));
+  }
+  else
+  {
+    SCB->SHP[_SHP_IDX(IRQn)] = ((uint32_t)(SCB->SHP[_SHP_IDX(IRQn)] & ~(0xFFUL << _BIT_SHIFT(IRQn))) |
+       (((priority << (8U - __NVIC_PRIO_BITS)) & (uint32_t)0xFFUL) << _BIT_SHIFT(IRQn)));
+  }
+}
+
+
+#define NVIC_SetPriority            __NVIC_SetPriority
+
+
+
+
+
+
+
+----------------------------- timer1的优先级设置为0  --------MX自动生成-----------------------------
+
+void MX_TIM1_Init(void)
+{
+
+  /* USER CODE BEGIN TIM1_Init 0 */
+
+  /* USER CODE END TIM1_Init 0 */
+
+  LL_TIM_InitTypeDef TIM_InitStruct = {0};
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM1);
+
+  /* TIM1 interrupt Init */
+  NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn, 0);   // timer1的优先级设置为0 
+  NVIC_EnableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);
+
+  /* USER CODE BEGIN TIM1_Init 1 */
+
+  /* USER CODE END TIM1_Init 1 */
+  TIM_InitStruct.Prescaler = 47;
+  TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
+  TIM_InitStruct.Autoreload = 9;
+  TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
+  TIM_InitStruct.RepetitionCounter = 0;
+  LL_TIM_Init(TIM1, &TIM_InitStruct);
+  LL_TIM_DisableARRPreload(TIM1);
+  LL_TIM_SetClockSource(TIM1, LL_TIM_CLOCKSOURCE_INTERNAL);
+  LL_TIM_SetTriggerOutput(TIM1, LL_TIM_TRGO_RESET);
+  LL_TIM_SetTriggerOutput2(TIM1, LL_TIM_TRGO2_RESET);
+  LL_TIM_DisableMasterSlaveMode(TIM1);
+  /* USER CODE BEGIN TIM1_Init 2 */
+  /* Clear the update flag */
+  LL_TIM_ClearFlag_UPDATE(TIM1);
+
+  /* Enable the update interrupt */
+  LL_TIM_EnableIT_UPDATE(TIM1);
+
+  /* Enable counter */
+  LL_TIM_EnableCounter(TIM1);
+  /* USER CODE END TIM1_Init 2 */
+
+}
+
+
+
+----------------------------- uart1的优先级设置为0  ------MX自动生成-------------------------------
+
+
+void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+   
+   
+  /* USER CODE END USART1_Init 0 */
+
+  LL_USART_InitTypeDef USART_InitStruct = {0};
+
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  LL_RCC_SetUSARTClockSource(LL_RCC_USART1_CLKSOURCE_PCLK1);
+
+  /* Peripheral clock enable */
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+  /**USART1 GPIO Configuration
+  PA9 [PA11]   ------> USART1_TX
+  */
+  GPIO_InitStruct.Pin = OMMOCOM_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_OPENDRAIN;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_UP;
+  GPIO_InitStruct.Alternate = LL_GPIO_AF_1;
+  LL_GPIO_Init(OMMOCOM_GPIO_Port, &GPIO_InitStruct);
+
+  LL_SYSCFG_EnableFastModePlus(LL_SYSCFG_I2C_FASTMODEPLUS_PA9);
+
+  /* USART1 interrupt Init */
+  NVIC_SetPriority(USART1_IRQn, 0);
+  NVIC_EnableIRQ(USART1_IRQn);
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  USART_InitStruct.PrescalerValue = LL_USART_PRESCALER_DIV1;
+  USART_InitStruct.BaudRate = 2000000;
+  USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
+  USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
+  USART_InitStruct.Parity = LL_USART_PARITY_NONE;
+  USART_InitStruct.TransferDirection = LL_USART_DIRECTION_TX_RX;
+  USART_InitStruct.OverSampling = LL_USART_OVERSAMPLING_16;
+  LL_USART_Init(USART1, &USART_InitStruct);
+  LL_USART_SetTXFIFOThreshold(USART1, LL_USART_FIFOTHRESHOLD_1_8);
+  LL_USART_SetRXFIFOThreshold(USART1, LL_USART_FIFOTHRESHOLD_1_8);
+  LL_USART_DisableFIFO(USART1);
+  LL_USART_ConfigHalfDuplexMode(USART1);
+
+  /* USER CODE BEGIN WKUPType USART1 */
+
+  /* USER CODE END WKUPType USART1 */
+
+  LL_USART_Enable(USART1);
+
+  /* Polling USART1 initialisation */
+  while((!(LL_USART_IsActiveFlag_TEACK(USART1))) || (!(LL_USART_IsActiveFlag_REACK(USART1))))
+  {
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+//  while((!(LL_USART_IsActiveFlag_TEACK(USART1))) || (!(LL_USART_IsActiveFlag_REACK(USART1))))
+//  {
+//  }
+  LL_USART_ClearFlag_ORE(USART1);
+  LL_USART_ClearFlag_NE(USART1);
+  LL_USART_ClearFlag_PE(USART1);
+  LL_USART_ClearFlag_FE(USART1);
+
+  
+  LL_USART_EnableIT_RXNE(USART1);
+  LL_USART_EnableIT_ERROR(USART1); 
+  
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+----------------------------- IO口的外部中断的优先级设置为0 ------MX自动生成-------------------------------
+
+
+void MX_GPIO_Init(void)
+{
+
+  LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
+  LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  /* GPIO Ports Clock Enable */
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOC);
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOA);
+  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+
+  /**/
+  LL_GPIO_ResetOutputPin(CURRENT_EN_GPIO_Port, CURRENT_EN_Pin);
+
+  /**/
+  LL_GPIO_ResetOutputPin(RESET_GPIO_Port, RESET_Pin);
+
+  /**/
+  LL_GPIO_SetOutputPin(SPI1_CS_GPIO_Port, SPI1_CS_Pin);
+
+  /**/
+  LL_GPIO_SetOutputPin(SET_GPIO_Port, SET_Pin);
+
+  /**/
+  GPIO_InitStruct.Pin = CURRENT_EN_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(CURRENT_EN_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = SPI1_CS_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(SPI1_CS_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = SET_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(SET_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  GPIO_InitStruct.Pin = RESET_Pin;
+  GPIO_InitStruct.Mode = LL_GPIO_MODE_OUTPUT;
+  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
+  LL_GPIO_Init(RESET_GPIO_Port, &GPIO_InitStruct);
+
+  /**/
+  LL_EXTI_SetEXTISource(LL_EXTI_CONFIG_PORTA, LL_EXTI_CONFIG_LINE8);
+
+  /**/
+  EXTI_InitStruct.Line_0_31 = LL_EXTI_LINE_8;
+  EXTI_InitStruct.LineCommand = ENABLE;
+  EXTI_InitStruct.Mode = LL_EXTI_MODE_IT;
+  EXTI_InitStruct.Trigger = LL_EXTI_TRIGGER_FALLING;
+  LL_EXTI_Init(&EXTI_InitStruct);
+
+  /**/
+  LL_GPIO_SetPinPull(IRQ_INT_GPIO_Port, IRQ_INT_Pin, LL_GPIO_PULL_UP);
+
+  /**/
+  LL_GPIO_SetPinMode(IRQ_INT_GPIO_Port, IRQ_INT_Pin, LL_GPIO_MODE_INPUT);
+
+  /* EXTI interrupt init*/
+  NVIC_SetPriority(EXTI4_15_IRQn, 0);     // IO口的外部中断的优先级
+  NVIC_EnableIRQ(EXTI4_15_IRQn);
+
+}
+
+
+----------------------------- SysTick中断的优先级设置为3 --------手动或MX自动生成-----------------------------
+
+main
+
+  /* SysTick_IRQn interrupt configuration */
+  NVIC_SetPriority(SysTick_IRQn, 3);
+
+
+   while (1) ;
+
+
+
+
+
+
+=============================C011-中断向量表==================================
+
+
+typedef enum
+{
+/******  Cortex-M0+ Processor Exceptions Numbers ***************************************************************/
+  NonMaskableInt_IRQn         = -14,    /*!< 2 Non Maskable Interrupt                                          */
+  HardFault_IRQn              = -13,    /*!< 3 Cortex-M Hard Fault Interrupt                                   */
+  SVCall_IRQn                 = -5,     /*!< 11 Cortex-M SV Call Interrupt                                     */
+  PendSV_IRQn                 = -2,     /*!< 14 Cortex-M Pend SV Interrupt                                     */
+  SysTick_IRQn                = -1,     /*!< 15 Cortex-M System Tick Interrupt                                 */
+/******  STM32C0xxxx specific Interrupt Numbers ****************************************************************/
+  WWDG_IRQn                   = 0,      /*!< Window WatchDog Interrupt                                         */
+  RTC_IRQn                    = 2,      /*!< RTC interrupt through the EXTI line 19 & 21                       */
+  FLASH_IRQn                  = 3,      /*!< FLASH global Interrupt                                            */
+  RCC_IRQn                    = 4,      /*!< RCC global Interrupt                                              */
+  EXTI0_1_IRQn                = 5,      /*!< EXTI 0 and 1 Interrupts                                           */
+  EXTI2_3_IRQn                = 6,      /*!< EXTI Line 2 and 3 Interrupts                                      */
+  EXTI4_15_IRQn               = 7,      /*!< EXTI Line 4 to 15 Interrupts                                      */
+  DMA1_Channel1_IRQn          = 9,      /*!< DMA1 Channel 1 Interrupt                                          */
+  DMA1_Channel2_3_IRQn        = 10,     /*!< DMA1 Channel 2 and Channel 3 Interrupts                           */
+  DMAMUX1_IRQn                = 11,     /*!< DMAMUX Interrupts                                                 */
+  ADC1_IRQn                   = 12,     /*!< ADC1 Interrupts                                                   */
+  TIM1_BRK_UP_TRG_COM_IRQn    = 13,     /*!< TIM1 Break, Update, Trigger and Commutation Interrupts            */
+  TIM1_CC_IRQn                = 14,     /*!< TIM1 Capture Compare Interrupt                                    */
+  TIM3_IRQn                   = 16,     /*!< TIM3 global Interrupt                                             */
+  TIM14_IRQn                  = 19,     /*!< TIM14 global Interrupt                                            */
+  TIM16_IRQn                  = 21,     /*!< TIM16 global Interrupt                                            */
+  TIM17_IRQn                  = 22,     /*!< TIM17 global Interrupt                                            */
+  I2C1_IRQn                   = 23,     /*!< I2C1 Interrupt  (combined with EXTI 23)                           */
+  SPI1_IRQn                   = 25,     /*!< SPI1 Interrupt                                                    */
+  USART1_IRQn                 = 27,     /*!< USART1 Interrupt                                                  */
+  USART2_IRQn                 = 28,     /*!< USART2 Interrupt                                                  */
+} IRQn_Type;
+
+
+TIM1_BRK_UP_TRG_COM_IRQn
+PWM  →   定时刹车、溢出、同步触发、电机换相
+TIM1_CC_IRQn  →   通道比较、输入捕获
+
+
+
+
+
